@@ -5,6 +5,7 @@ Jede Änderung wird an drei Stellen nachgezogen: Commit auf `main`, Deploy zu Ne
 | Datum | Änderung | Commit | Netlify | Freebuff |
 | --- | --- | --- | --- | --- |
 | 18.11.2026 | Backplan, Vorratscheck, Netlify-Hosting, README | `352b687` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
+| 18.11.2026 | Feinschliff: Überlauf behoben, Auswahl-Chips, Fokus-Falle | `0dbb12a` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 
 ## Hinweise
 
