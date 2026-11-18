@@ -1,13 +1,13 @@
 # Keksdose
 
 Plätzchen-Rezepte als statische Website: HTML, CSS und JavaScript in `public/`, kein Build-Schritt.
-35 Rezepte, Plätzchen-Finder, Portions-/Ausstecher-Rechner, Einkaufsliste, Backplan und Vorratscheck.
+35 Rezepte, Plätzchen-Finder, Portions-/Ausstecher-Rechner, Einkaufsliste, Backplan mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
 
 ## Struktur
 
 - `public/index.html` – Seitenaufbau
 - `public/styles.css` – Gestaltung inklusive Druckansicht
-- `public/app.js` – Filter, Rezept-Drawer, Finder, Einkaufsliste, Backplan, Vorratscheck
+- `public/app.js` – Filter, Rezept-Drawer, Finder, Einkaufsliste, Backplan, Backmodus, Vorratscheck
 - `public/recipes.js` – Rezeptdaten
 - `worker.js` + `sites.manifest.json` – Freebuff-Deploy (Worker liefert `public/` aus)
 - `netlify.toml` – Netlify-Deploy direkt aus `public/`

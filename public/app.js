@@ -1072,7 +1072,24 @@
   /* ---------- Backplan ---------- */
   const PLAN_KEY = 'keksdose-backplan-v1';
 
-  const plan = { ids: [], start: '14:00', query: '' };
+  // Was in der Küche steht, verändert die Zeiten im Plan.
+  const GEAR = [
+    { key: 'mixer', label: 'Handmixer', hint: 'Rührt den Teig schneller' },
+    { key: 'freezer', label: 'Gefrierschrank', hint: 'Halbiert die Kühlzeit' },
+    { key: 'convection', label: 'Umluft', hint: 'Backt kürzer und 20 °C kühler' },
+    { key: 'scale', label: 'Küchenwaage', hint: 'Zutaten genau abwiegen' },
+    { key: 'cutters', label: 'Ausstecher', hint: 'Für Ausstech-Plätzchen' },
+    { key: 'piping', label: 'Spritzbeutel', hint: 'Für Spritzgebäck' }
+  ];
+  const GEAR_DEFAULT = ['mixer', 'scale'];
+
+  const plan = {
+    ids: [],
+    start: '14:00',
+    query: '',
+    gear: new Set(GEAR_DEFAULT),
+    step: 0
+  };
 
   const pEl = {
     options: document.getElementById('planOptions'),
@@ -1081,7 +1098,9 @@
     start: document.getElementById('planStart'),
     count: document.getElementById('planCount'),
     chips: document.getElementById('planChips'),
-    clear: document.getElementById('planClear')
+    clear: document.getElementById('planClear'),
+    gearChips: document.getElementById('planGearChips'),
+    gearNote: document.getElementById('planGearNote')
   };
 
   function loadPlan() {
@@ -1089,11 +1108,20 @@
       const raw = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
       if (Array.isArray(raw.ids)) plan.ids = raw.ids.filter((id) => RECIPES.some((r) => r.id === id));
       if (typeof raw.start === 'string' && /^\d{2}:\d{2}$/.test(raw.start)) plan.start = raw.start;
+      if (Array.isArray(raw.gear)) plan.gear = new Set(raw.gear.filter((k) => GEAR.some((g) => g.key === k)));
+      if (Number.isInteger(raw.step) && raw.step >= 0) plan.step = raw.step;
     } catch (err) { /* ohne Speicher startet der Plan leer */ }
   }
 
   function savePlan() {
-    try { localStorage.setItem(PLAN_KEY, JSON.stringify({ ids: plan.ids, start: plan.start })); } catch (err) { /* Sitzung genügt */ }
+    try {
+      localStorage.setItem(PLAN_KEY, JSON.stringify({
+        ids: plan.ids,
+        start: plan.start,
+        gear: [...plan.gear],
+        step: plan.step
+      }));
+    } catch (err) { /* Sitzung genügt */ }
   }
 
   const clock = (mins) => {
@@ -1117,8 +1145,22 @@
   // geknetet wird meist länger als gebacken.
   function phaseTimes(r) {
     const base = r.level === 'Einfach' ? 15 : r.level === 'Mittel' ? 20 : 28;
-    const prep = Math.max(10, Math.min(base, Math.round(r.zeit * 0.6)));
-    return { prep, bake: Math.max(6, r.zeit - prep), chill: r.kuehl || 0 };
+    const prepBase = Math.max(10, Math.min(base, Math.round(r.zeit * 0.6)));
+    const bakeBase = Math.max(6, r.zeit - prepBase);
+    // Ohne Mixer dauert das Rühren länger, mit Umluft backt es kürzer,
+    // im Gefrierschrank halbiert sich die Kühlzeit.
+    const prep = plan.gear.has('mixer') ? prepBase : Math.round((prepBase * 1.35) / 5) * 5;
+    const bake = plan.gear.has('convection') ? Math.max(5, Math.round(bakeBase * 0.85)) : bakeBase;
+    const chill = r.kuehl && plan.gear.has('freezer')
+      ? Math.max(20, Math.round((r.kuehl / 2) / 5) * 5)
+      : (r.kuehl || 0);
+    return { prep, bake, chill };
+  }
+
+  function gearSummary() {
+    const active = GEAR.filter((g) => plan.gear.has(g.key)).map((g) => g.label);
+    if (!active.length) return 'ohne Ausstattung gerechnet: mehr Zeit zum Rühren, volle Kühlzeit';
+    return `Zeiten angepasst an ${active.join(', ')}`;
   }
 
   // Ein Ofen, ein Blech: erst alle Teige anrühren (was lange kühlen muss zuerst),
@@ -1203,6 +1245,17 @@
       : 'noch nichts gewählt';
   }
 
+  function renderPlanGear() {
+    if (pEl.gearChips) {
+      pEl.gearChips.innerHTML = GEAR.map((g) => `
+        <label class="gear-chip" title="${esc(g.hint)}">
+          <input type="checkbox" data-gear="${esc(g.key)}"${plan.gear.has(g.key) ? ' checked' : ''}>
+          <span>${esc(g.label)}</span>
+        </label>`).join('');
+    }
+    if (pEl.gearNote) pEl.gearNote.textContent = gearSummary();
+  }
+
   function renderPlanChips() {
     if (!pEl.chips) return;
     const chosen = plan.ids
@@ -1258,8 +1311,12 @@
           <p class="eyebrow"><span></span>Dein Nachmittag</p>
           <p class="plan-finish">Fertig um <strong>${clock(schedule.end)}</strong></p>
           <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${durationLabel(total)} inklusive Kühlzeit</p>
+          <p class="plan-gear-line">${esc(gearSummary())}</p>
         </div>
-        <button class="btn btn-primary" type="button" id="planToList">Alles auf die Einkaufsliste</button>
+        <div class="plan-actions">
+          <button class="btn btn-primary" type="button" id="planBake">Jetzt losbacken</button>
+          <button class="btn btn-ghost" type="button" id="planToList">Alles auf die Einkaufsliste</button>
+        </div>
       </div>
       ${total > 300 ? '<p class="plan-warn">Das sind mehr als fünf Stunden Backen. Für einen Nachmittag passen besser zwei bis vier Rezepte — oder du teilst den Plan auf zwei Tage.</p>' : ''}
       <ol class="plan-steps">${schedule.events.map(planStepHTML).join('')}</ol>`;
@@ -1280,6 +1337,7 @@
       } else {
         plan.ids = plan.ids.filter((x) => x !== id);
       }
+      plan.step = 0;
       savePlan();
       updatePlanCount();
       renderPlanChips();
@@ -1293,6 +1351,7 @@
       plan.ids = plan.ids.filter((x) => x !== id);
       const box = pEl.options.querySelector(`[data-plan-id="${id}"]`);
       if (box) box.checked = false;
+      plan.step = 0;
       savePlan();
       updatePlanCount();
       renderPlanChips();
@@ -1302,12 +1361,26 @@
     pEl.start.addEventListener('change', () => {
       if (!/^\d{2}:\d{2}$/.test(pEl.start.value)) return;
       plan.start = pEl.start.value;
+      plan.step = 0;
       savePlan();
+      renderPlan();
+    });
+
+    pEl.gearChips.addEventListener('change', (e) => {
+      const box = e.target.closest('[data-gear]');
+      if (!box) return;
+      if (box.checked) plan.gear.add(box.dataset.gear);
+      else plan.gear.delete(box.dataset.gear);
+      plan.step = 0;
+      savePlan();
+      if (pEl.gearNote) pEl.gearNote.textContent = gearSummary();
+      renderPlanOptions();
       renderPlan();
     });
 
     pEl.clear.addEventListener('click', () => {
       plan.ids = [];
+      plan.step = 0;
       savePlan();
       renderPlanOptions();
       renderPlanChips();
@@ -1315,6 +1388,8 @@
     });
 
     pEl.output.addEventListener('click', (e) => {
+      if (e.target.closest('#planBake')) { openBake(); return; }
+
       const btn = e.target.closest('#planToList');
       if (!btn) return;
       plan.ids.forEach((id) => {
@@ -1325,6 +1400,335 @@
       btn.textContent = 'Auf der Einkaufsliste';
       btn.classList.add('is-added');
       btn.disabled = true;
+    });
+  }
+
+  /* ---------- Backmodus: Schritt für Schritt ---------- */
+  const SOUND_KEY = 'keksdose-backmodus-ton-v1';
+
+  const bakeEl = {
+    root: document.getElementById('bakeMode'),
+    stepLabel: document.getElementById('bakeStepLabel'),
+    progressTime: document.getElementById('bakeProgressTime'),
+    bar: document.getElementById('bakeBar'),
+    phase: document.getElementById('bakePhase'),
+    clock: document.getElementById('bakeClock'),
+    title: document.getElementById('bakeTitle'),
+    meta: document.getElementById('bakeMeta'),
+    timerBox: document.getElementById('bakeTimerBox'),
+    count: document.getElementById('bakeCount'),
+    timerToggle: document.getElementById('bakeTimerToggle'),
+    timerReset: document.getElementById('bakeTimerReset'),
+    timerNote: document.getElementById('bakeTimerNote'),
+    body: document.getElementById('bakeBody'),
+    prev: document.getElementById('bakePrev'),
+    next: document.getElementById('bakeNext'),
+    nextUp: document.getElementById('bakeNextUp'),
+    sound: document.getElementById('bakeSound'),
+    close: document.getElementById('bakeClose')
+  };
+
+  let bakeSound = true;
+  try { bakeSound = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (err) { /* Ton bleibt an */ }
+
+  const bakeTimer = { total: 0, left: 0, running: false, started: false, endsAt: 0, finished: false, interval: null };
+  let wakeLock = null;
+  let bakeOpener = null;
+  let audioCtx = null;
+
+  const mmss = (sec) => {
+    const s = Math.max(0, Math.round(sec));
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
+
+  // Die Temperatur steht im Rezepttext ("Bei 180 °C …").
+  function recipeTemp(r) {
+    const hit = r.schritte.join(' ').match(/(\d{2,3})\s*°C/);
+    return hit ? Number(hit[1]) : null;
+  }
+
+  const ovenMode = () => (plan.gear.has('convection') ? 'Umluft' : 'Ober-/Unterhitze');
+
+  function bakeTemp(r) {
+    const temp = recipeTemp(r);
+    if (!temp) return null;
+    return plan.gear.has('convection') ? temp - 20 : temp;
+  }
+
+  function bakeStep(event, schedule) {
+    const r = event.item ? event.item.r : null;
+
+    if (event.type === 'prep') {
+      const hints = [
+        plan.gear.has('scale')
+          ? 'Waage raus: alle Zutaten abwiegen, Mehl locker einfüllen.'
+          : 'Ohne Waage: Tassen locker füllen — eine Tasse Mehl sind etwa 130 g.'
+      ];
+      if (!plan.gear.has('mixer')) hints.push('Ohne Mixer von Hand rühren — dafür ist hier mehr Zeit eingeplant.');
+      if (r.ausstecher && !plan.gear.has('cutters')) hints.push(`Für ${r.name} brauchst du einen Ausstecher mit ${r.ausstecher.d} cm.`);
+      if (r.id === 'spritzgebaeck' && !plan.gear.has('piping')) hints.push('Ohne Spritzbeutel: den Teig zu Rollen formen und in Scheiben schneiden.');
+
+      return {
+        phase: 'Teig anrühren',
+        title: `${r.name} anrühren`,
+        meta: `ca. ${event.dur} Min · ${r.stueck} Stück · ${r.level}`,
+        body: `<ol class="bake-steps">${r.schritte.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+          ${r.tipp ? `<details class="bake-tip"><summary>Tipp für ${esc(r.name)}</summary><p>${esc(r.tipp)}</p></details>` : ''}
+          ${hints.length ? `<ul class="bake-hints">${hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}`
+      };
+    }
+
+    if (event.type === 'chill') {
+      const where = plan.gear.has('freezer') ? 'Gefrierschrank' : 'Kühlschrank';
+      const note = plan.gear.has('freezer')
+        ? 'Im Gefrierschrank ist die Kühlzeit bereits halbiert — hol den Teig rechtzeitig heraus, sonst wird er zu hart zum Ausrollen.'
+        : 'Ohne Gefrierschrank dauert es länger: lieber zehn Minuten mehr einplanen, als mit weichem Teig zu arbeiten.';
+      return {
+        phase: 'Kühlen',
+        title: `${r.name} kalt stellen`,
+        meta: `${event.dur} Min im ${where} · läuft nebenher`,
+        body: `<p class="bake-text">Teig abgedeckt in den ${where} geben. In der Zeit kannst du den nächsten Teig anrühren oder das Blech vorbereiten.</p>
+          <p class="bake-text">${esc(note)}</p>`
+      };
+    }
+
+    if (event.type === 'oven') {
+      const next = schedule.events.find((e) => e.type === 'bake' && e.at >= event.at);
+      const temp = next && next.item ? bakeTemp(next.item.r) : null;
+      return {
+        phase: 'Vorheizen',
+        title: 'Ofen vorheizen',
+        meta: temp ? `${ovenMode()} · ${temp} °C · ca. 10 Min` : 'ca. 10 Min',
+        body: `<p class="bake-text">Blech, Backpapier und Gitter bereitlegen. Die Ofentür bleibt zu, bis die Lampe ausgeht.</p>
+          ${plan.gear.has('convection') ? '<p class="bake-text">Umluft: 20 °C weniger als im Rezept — genau so steht die Temperatur hier schon.</p>' : ''}`
+      };
+    }
+
+    const temp = bakeTemp(r);
+    const turn = event.dur >= 12
+      ? `Nach etwa ${Math.round(event.dur / 2)} Minuten das Blech einmal drehen.`
+      : 'Nach der Hälfte der Zeit kurz nachsehen.';
+    return {
+      phase: 'Backen',
+      title: `${r.name} backen`,
+      meta: `${temp ? temp + ' °C · ' : ''}ca. ${event.dur} Min · ${r.stueck} Stück`,
+      body: `<p class="bake-text">Blech auf mittlerer Schiene in den Ofen. ${esc(turn)}</p>
+        <p class="bake-text">Nach dem Backen zwei Minuten auf dem Blech lassen, dann auf ein Gitter heben — im Blech schwitzen sie und werden weich.</p>
+        ${plan.gear.has('convection') ? '<p class="bake-text">Umluft trocknet stärker: lieber eine Minute früher herausnehmen und auf dem Blech nachziehen lassen.</p>' : ''}`
+    };
+  }
+
+  function doneStep(schedule) {
+    const names = [...new Set(schedule.events
+      .filter((e) => e.type === 'bake')
+      .map((e) => e.item.r.name))];
+    return {
+      phase: 'Geschafft',
+      title: 'Fertig — guten Appetit',
+      meta: `${schedule.count} ${schedule.count === 1 ? 'Sorte' : 'Sorten'} · ${schedule.pieces} Stück · fertig um ${clock(schedule.end)}`,
+      body: `<ul class="bake-done">${names.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+        <p class="bake-text">Erst vollständig auskühlen lassen, dann glasieren oder füllen. In der Blechdose halten sie sich mehrere Wochen.</p>`
+    };
+  }
+
+  function renderBake(schedule) {
+    if (!bakeEl.root) return;
+    const sched = schedule || planSchedule(plan.ids);
+    if (!sched) return;
+
+    const total = sched.events.length + 1;
+    plan.step = Math.max(0, Math.min(plan.step, total - 1));
+    const event = sched.events[plan.step];
+    const info = event ? bakeStep(event, sched) : doneStep(sched);
+
+    bakeEl.root.dataset.phase = event ? event.type : 'done';
+    bakeEl.phase.textContent = info.phase;
+    bakeEl.clock.textContent = event
+      ? `${clock(event.at)} Uhr · noch ${durationLabel(sched.end - event.at)} bis alles fertig ist`
+      : `${clock(sched.end)} Uhr`;
+    bakeEl.title.textContent = info.title;
+    bakeEl.meta.textContent = info.meta;
+    bakeEl.body.innerHTML = info.body;
+
+    bakeEl.stepLabel.textContent = `Schritt ${plan.step + 1} von ${total}`;
+    bakeEl.progressTime.textContent = `fertig um ${clock(sched.end)}`;
+    bakeEl.bar.style.width = `${Math.round(((plan.step + 1) / total) * 100)}%`;
+
+    bakeEl.prev.disabled = plan.step === 0;
+    bakeEl.next.textContent = plan.step === total - 1 ? 'Backmodus schließen' : 'Nächster Schritt';
+
+    const following = sched.events[plan.step + 1];
+    bakeEl.nextUp.textContent = following
+      ? `Danach: ${bakeStep(following, sched).title} · ${clock(following.at)} Uhr`
+      : plan.step === total - 2 ? 'Danach: abkühlen und in die Dose.' : '';
+  }
+
+  function renderTimer() {
+    if (!bakeEl.timerBox) return;
+    const has = bakeTimer.total > 0;
+    bakeEl.timerBox.hidden = !has;
+    if (!has) return;
+
+    bakeEl.count.textContent = mmss(bakeTimer.left);
+    bakeEl.timerBox.classList.toggle('is-done', bakeTimer.finished);
+    bakeEl.count.classList.toggle('is-done', bakeTimer.finished);
+    bakeEl.timerToggle.textContent = bakeTimer.finished
+      ? 'Nochmal starten'
+      : bakeTimer.running ? 'Pause' : bakeTimer.started ? 'Weiter' : 'Timer starten';
+    bakeEl.timerNote.textContent = bakeTimer.finished
+      ? 'Zeit ist um — jetzt weiter zum nächsten Schritt.'
+      : bakeTimer.running
+        ? 'Der Timer läuft. Du kannst das Handy getrost aus der Hand legen.'
+        : `${durationLabel(Math.round(bakeTimer.total / 60))} für diesen Schritt.`;
+  }
+
+  function resetBakeTimer(minutes) {
+    window.clearInterval(bakeTimer.interval);
+    bakeTimer.interval = null;
+    bakeTimer.total = Math.max(0, Math.round(minutes * 60));
+    bakeTimer.left = bakeTimer.total;
+    bakeTimer.running = false;
+    bakeTimer.started = false;
+    bakeTimer.finished = false;
+    bakeTimer.endsAt = 0;
+    renderTimer();
+  }
+
+  function tickTimer() {
+    bakeTimer.left = Math.max(0, Math.round((bakeTimer.endsAt - Date.now()) / 1000));
+    if (!bakeTimer.left) {
+      bakeTimer.running = false;
+      bakeTimer.finished = true;
+      window.clearInterval(bakeTimer.interval);
+      bakeTimer.interval = null;
+      beep();
+    }
+    renderTimer();
+  }
+
+  function toggleTimer() {
+    if (bakeTimer.running) {
+      bakeTimer.left = Math.max(0, Math.round((bakeTimer.endsAt - Date.now()) / 1000));
+      bakeTimer.running = false;
+      window.clearInterval(bakeTimer.interval);
+      bakeTimer.interval = null;
+      renderTimer();
+      return;
+    }
+    if (bakeTimer.finished) {
+      bakeTimer.left = bakeTimer.total;
+      bakeTimer.finished = false;
+    }
+    if (!bakeTimer.left) return;
+    bakeTimer.endsAt = Date.now() + bakeTimer.left * 1000;
+    bakeTimer.running = true;
+    bakeTimer.started = true;
+    bakeTimer.interval = window.setInterval(tickTimer, 500);
+    renderTimer();
+  }
+
+  function beep() {
+    if (!bakeSound) return;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = audioCtx || new Ctx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      [0, 0.3, 0.6].forEach((offset, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880 - i * 60;
+        gain.gain.setValueAtTime(0.0001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.24);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.26);
+      });
+    } catch (err) { /* ohne Ton läuft der Timer weiter */ }
+  }
+
+  function renderSound() {
+    if (!bakeEl.sound) return;
+    bakeEl.sound.setAttribute('aria-pressed', String(bakeSound));
+    bakeEl.sound.setAttribute('aria-label', bakeSound ? 'Timer-Ton ausschalten' : 'Timer-Ton einschalten');
+  }
+
+  async function keepAwake(on) {
+    try {
+      if (on) {
+        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+      } else if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    } catch (err) { wakeLock = null; }
+  }
+
+  function showBakeStep() {
+    const sched = planSchedule(plan.ids);
+    if (!sched || !bakeEl.root) return;
+    const event = sched.events[plan.step];
+    resetBakeTimer(event ? event.dur : 0);
+    renderBake(sched);
+  }
+
+  function openBake() {
+    if (!bakeEl.root || !planSchedule(plan.ids)) return;
+    if (state.open) closeRecipe();
+    if (el.listPanel && el.listPanel.classList.contains('open')) closeList();
+    if (pantryEl.panel && pantryEl.panel.classList.contains('open')) closePantry();
+    bakeOpener = document.activeElement;
+    bakeEl.root.hidden = false;
+    el.body.classList.add('locked');
+    showBakeStep();
+    keepAwake(true);
+    bakeEl.close.focus({ preventScroll: true });
+  }
+
+  function closeBake() {
+    if (!bakeEl.root || bakeEl.root.hidden) return;
+    bakeEl.root.hidden = true;
+    el.body.classList.remove('locked');
+    window.clearInterval(bakeTimer.interval);
+    bakeTimer.interval = null;
+    bakeTimer.running = false;
+    keepAwake(false);
+    if (bakeOpener && document.contains(bakeOpener)) bakeOpener.focus({ preventScroll: true });
+  }
+
+  function bakeGo(delta) {
+    const sched = planSchedule(plan.ids);
+    if (!sched) return;
+    const total = sched.events.length + 1;
+    const next = plan.step + delta;
+    if (next < 0 || next >= total) return;
+    plan.step = next;
+    savePlan();
+    showBakeStep();
+  }
+
+  if (bakeEl.root) {
+    renderSound();
+    bakeEl.root.addEventListener('click', (e) => {
+      if (e.target.closest('#bakeClose')) { closeBake(); return; }
+      if (e.target.closest('#bakeNext')) {
+        const sched = planSchedule(plan.ids);
+        if (sched && plan.step >= sched.events.length) closeBake();
+        else bakeGo(1);
+        return;
+      }
+      if (e.target.closest('#bakePrev')) { bakeGo(-1); return; }
+      if (e.target.closest('#bakeTimerToggle')) { toggleTimer(); return; }
+      if (e.target.closest('#bakeTimerReset')) { resetBakeTimer(bakeTimer.total / 60); return; }
+      if (e.target.closest('#bakeSound')) {
+        bakeSound = !bakeSound;
+        try { localStorage.setItem(SOUND_KEY, bakeSound ? 'on' : 'off'); } catch (err) { /* Sitzung genügt */ }
+        renderSound();
+      }
     });
   }
 
@@ -1719,6 +2123,12 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    if (bakeEl.root && !bakeEl.root.hidden) {
+      if (e.key === 'Tab') { trapFocus(bakeEl.root, e); return; }
+      if (e.key === 'Escape') { e.preventDefault(); closeBake(); return; }
+      if (e.key === 'ArrowRight') { e.preventDefault(); bakeGo(1); return; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); bakeGo(-1); return; }
+    }
     if (e.key === 'Tab') {
       if (pantryEl.panel && pantryEl.panel.classList.contains('open')) trapFocus(pantryEl.panel, e);
       else if (el.listPanel && el.listPanel.classList.contains('open')) trapFocus(el.listPanel, e);
@@ -1758,6 +2168,7 @@
 
   loadPlan();
   if (pEl.start) pEl.start.value = plan.start;
+  renderPlanGear();
   renderPlanOptions();
   renderPlanChips();
   renderPlan();

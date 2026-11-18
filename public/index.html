@@ -152,6 +152,13 @@
             <input id="planSearch" type="search" placeholder="Rezept suchen …" aria-label="Rezepte für den Backplan durchsuchen" autocomplete="off">
           </div>
           <div class="plan-options" id="planOptions" role="group" aria-label="Rezepte für den Backplan auswählen"></div>
+          <div class="plan-gear">
+            <div class="plan-gear-head">
+              <span>Deine Ausstattung</span>
+              <span class="plan-gear-note" id="planGearNote">Passt die Zeiten an</span>
+            </div>
+            <div class="plan-gear-chips" id="planGearChips" role="group" aria-label="Ausstattung auswählen"></div>
+          </div>
           <div class="plan-picker-foot">
             <label class="plan-start">Start <input type="time" id="planStart" value="14:00"></label>
             <button class="plan-clear" id="planClear" type="button">Auswahl leeren</button>
@@ -159,7 +166,7 @@
         </div>
         <div class="plan-output" id="planOutput" aria-live="polite"></div>
       </div>
-      <p class="plan-note">Arbeitszeiten sind geschätzt, die Backzeiten kommen aus den Rezeptangaben. Der Plan rechnet mit einem Ofen und einem Blech nach dem anderen.</p>
+      <p class="plan-note">Arbeitszeiten sind geschätzt, die Backzeiten kommen aus den Rezeptangaben. Der Plan rechnet mit einem Ofen und einem Blech nach dem anderen — deine Ausstattung verkürzt Rühr-, Kühl- und Backzeiten. Mit <strong>Jetzt losbacken</strong> führt dich der Backmodus Schritt für Schritt durch den Nachmittag.</p>
     </section>
 
     <section id="tipps" class="wrap tips" aria-labelledby="tipsTitle">
@@ -280,6 +287,52 @@
       <p class="footer-note">Alle Mengen für ein normales Blech. Guten Appetit — und schöne Adventsabende.</p>
     </div>
   </footer>
+
+  <div class="bake" id="bakeMode" role="dialog" aria-modal="true" aria-labelledby="bakeTitle" hidden>
+    <div class="bake-shell">
+      <header class="bake-head">
+        <p class="bake-brand"><span></span>Backmodus</p>
+        <div class="bake-progress">
+          <div class="bake-progress-top">
+            <span id="bakeStepLabel">Schritt 1 von 1</span>
+            <span id="bakeProgressTime"></span>
+          </div>
+          <div class="bake-bar"><i id="bakeBar"></i></div>
+        </div>
+        <button class="bake-icon bake-sound" id="bakeSound" type="button" aria-pressed="true" aria-label="Timer-Ton ausschalten">
+          <svg class="sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3L12 5.5v13L7 14.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+          <svg class="sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3L12 5.5v13L7 14.5H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></svg>
+        </button>
+        <button class="bake-icon" id="bakeClose" type="button" aria-label="Backmodus beenden">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="bake-stage">
+        <div class="bake-step">
+          <p class="bake-phase" id="bakePhase"></p>
+          <p class="bake-clock" id="bakeClock"></p>
+          <h2 class="bake-title" id="bakeTitle"></h2>
+          <p class="bake-meta" id="bakeMeta"></p>
+          <div class="bake-timer" id="bakeTimerBox" hidden>
+            <p class="bake-count" id="bakeCount">00:00</p>
+            <div class="bake-timer-side">
+              <div class="bake-timer-btns">
+                <button class="btn btn-primary" id="bakeTimerToggle" type="button">Timer starten</button>
+                <button class="btn btn-ghost" id="bakeTimerReset" type="button">Zurücksetzen</button>
+              </div>
+              <p class="bake-timer-note" id="bakeTimerNote"></p>
+            </div>
+          </div>
+          <div class="bake-body" id="bakeBody"></div>
+        </div>
+      </div>
+      <footer class="bake-foot">
+        <button class="bake-nav-btn" id="bakePrev" type="button">Zurück</button>
+        <p class="bake-next-up" id="bakeNextUp"></p>
+        <button class="btn btn-primary bake-next" id="bakeNext" type="button">Nächster Schritt</button>
+      </footer>
+    </div>
+  </div>
 
   <div class="backdrop" id="backdrop" hidden></div>
   <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"></aside>
