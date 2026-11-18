@@ -1080,6 +1080,7 @@
     search: document.getElementById('planSearch'),
     start: document.getElementById('planStart'),
     count: document.getElementById('planCount'),
+    chips: document.getElementById('planChips'),
     clear: document.getElementById('planClear')
   };
 
@@ -1202,6 +1203,19 @@
       : 'noch nichts gewählt';
   }
 
+  function renderPlanChips() {
+    if (!pEl.chips) return;
+    const chosen = plan.ids
+      .map((id) => RECIPES.find((r) => r.id === id))
+      .filter(Boolean);
+    pEl.chips.hidden = chosen.length === 0;
+    pEl.chips.innerHTML = chosen.map((r) => `
+      <button class="plan-chip" type="button" data-plan-remove="${esc(r.id)}"
+        aria-label="${esc(r.name)} aus dem Backplan nehmen">
+        <span>${esc(r.name)}</span>${icons.close}
+      </button>`).join('');
+  }
+
   function renderPlanOptions() {
     if (!pEl.options) return;
     const q = plan.query.trim().toLowerCase();
@@ -1268,6 +1282,20 @@
       }
       savePlan();
       updatePlanCount();
+      renderPlanChips();
+      renderPlan();
+    });
+
+    pEl.chips.addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-plan-remove]');
+      if (!chip) return;
+      const id = chip.dataset.planRemove;
+      plan.ids = plan.ids.filter((x) => x !== id);
+      const box = pEl.options.querySelector(`[data-plan-id="${id}"]`);
+      if (box) box.checked = false;
+      savePlan();
+      updatePlanCount();
+      renderPlanChips();
       renderPlan();
     });
 
@@ -1282,6 +1310,7 @@
       plan.ids = [];
       savePlan();
       renderPlanOptions();
+      renderPlanChips();
       renderPlan();
     });
 
@@ -1574,6 +1603,25 @@
     });
   }
 
+  /* ---------- Tastaturfokus in den Drawern ---------- */
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  // Tab soll im offenen Drawer bleiben und nicht hinter dem Dialog landen.
+  function trapFocus(panel, event) {
+    const items = [...panel.querySelectorAll(FOCUSABLE)]
+      .filter((node) => node.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   /* ---------- Events ---------- */
   el.search.addEventListener('input', () => {
     state.query = el.search.value;
@@ -1671,6 +1719,11 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      if (pantryEl.panel && pantryEl.panel.classList.contains('open')) trapFocus(pantryEl.panel, e);
+      else if (el.listPanel && el.listPanel.classList.contains('open')) trapFocus(el.listPanel, e);
+      else if (state.open) trapFocus(el.drawer, e);
+    }
     if (e.key === 'Escape') {
       closePantry();
       closeList();
@@ -1706,6 +1759,7 @@
   loadPlan();
   if (pEl.start) pEl.start.value = plan.start;
   renderPlanOptions();
+  renderPlanChips();
   renderPlan();
 
   loadPantry();

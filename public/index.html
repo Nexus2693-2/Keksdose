@@ -103,7 +103,8 @@
         <div class="chips" id="filterChips" role="group" aria-label="Nach Kategorie filtern"></div>
         <button class="list-btn pantry-btn" type="button" id="pantryToggle" aria-label="Was hab ich da? Vorrat prüfen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.2"/><path d="M4 10.5h16M4 15.5h16"/></svg>
-          <span>Was hab ich da?</span>
+          <span class="pantry-full">Was hab ich da?</span>
+          <span class="pantry-short">Vorrat</span>
         </button>
         <label class="sort">
           <span>Sortieren</span>
@@ -143,8 +144,9 @@
         <div class="plan-picker">
           <div class="plan-picker-head">
             <h3>Deine Auswahl</h3>
-            <span class="plan-count" id="planCount">noch nichts gewählt</span>
+            <span class="plan-count" id="planCount" aria-live="polite">noch nichts gewählt</span>
           </div>
+          <div class="plan-chips" id="planChips" hidden></div>
           <div class="search plan-search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
             <input id="planSearch" type="search" placeholder="Rezept suchen …" aria-label="Rezepte für den Backplan durchsuchen" autocomplete="off">
