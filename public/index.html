@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Keksdose — Plätzchen-Rezepte für die Adventszeit</title>
+  <meta name="description" content="35 erprobte Plätzchen-Rezepte mit genauen Mengen, Schritt-für-Schritt-Anleitungen und einem Portionsrechner – von Vanillekipferl bis zu veganen Haferkeksen.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%23c98a4b'/%3E%3Ccircle cx='38' cy='40' r='6' fill='%235c3a22'/%3E%3Ccircle cx='62' cy='36' r='5' fill='%235c3a22'/%3E%3Ccircle cx='56' cy='62' r='6' fill='%235c3a22'/%3E%3Ccircle cx='34' cy='63' r='4' fill='%235c3a22'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#rezepte">Zu den Rezepten springen</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="#c98a4b"/>
+            <circle cx="38" cy="40" r="6.5" fill="#5c3a22"/>
+            <circle cx="62" cy="36" r="5" fill="#5c3a22"/>
+            <circle cx="56" cy="62" r="6" fill="#5c3a22"/>
+            <circle cx="34" cy="63" r="4.5" fill="#5c3a22"/>
+            <circle cx="66" cy="54" r="3.5" fill="#5c3a22"/>
+          </svg>
+        </span>
+        <span class="brand-name">Keksdose</span>
+      </a>
+      <nav class="site-nav" aria-label="Hauptnavigation">
+        <a href="#finder">Finder</a>
+        <a href="#rezepte">Rezepte</a>
+        <a href="#tipps">Backtipps</a>
+        <span class="nav-badge">35 Rezepte</span>
+        <button class="list-btn" type="button" id="listToggle">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>
+          <span>Einkaufsliste</span>
+          <span class="list-count" id="listCount" hidden>0</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero wrap">
+      <div class="hero-text">
+        <p class="eyebrow"><span></span>Adventsbäckerei, ohne Rummel</p>
+        <h1>Plätzchen, die nach <em>Zuhause</em> schmecken.</h1>
+        <p class="hero-lede">
+          35 Rezepte, die wirklich funktionieren: genaue Mengen, ehrliche Handgriffe
+          und die kleinen Fehler, die man beim Backen gern vermeidet. Kein Blog-Tagebuch
+          vor dem Rezept — nur das, was du am Backtisch brauchst.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#rezepte">Rezepte ansehen</a>
+          <a class="btn btn-ghost" href="#finder">Plätzchen finden</a>
+        </div>
+      </div>
+      <div class="hero-art" id="heroArt" aria-hidden="true"></div>
+    </section>
+
+    <section id="finder" class="wrap finder" aria-label="Plätzchen-Finder">
+      <div class="finder-card">
+        <div class="finder-panel" id="finderIntro">
+          <p class="eyebrow"><span></span>Plätzchen-Finder</p>
+          <h2>Sechs Fragen bis zum richtigen Keks.</h2>
+          <p class="finder-lede">
+            Keine Lust, 35 Rezepte durchzulesen? Sag uns, wonach dir ist, wie es sich anfühlen soll
+            und wie viel Zeit du hast — wir rechnen die drei besten Plätzchen für dich aus.
+          </p>
+          <button class="btn btn-primary" type="button" id="finderStart">Fragebogen starten</button>
+        </div>
+
+        <div class="finder-panel" id="finderQuiz" hidden>
+          <div class="finder-progress" aria-hidden="true"><span id="finderBar"></span></div>
+          <p class="finder-count" id="finderCount"></p>
+          <h2 class="finder-q" id="finderQuestion"></h2>
+          <div class="finder-options" id="finderOptions"></div>
+          <div class="finder-foot">
+            <button class="btn btn-ghost" type="button" id="finderBack">Zurück</button>
+            <span class="finder-hintline" id="finderHint"></span>
+          </div>
+        </div>
+
+        <div class="finder-panel" id="finderResult" hidden></div>
+      </div>
+    </section>
+
+    <section id="rezepte" class="wrap recipes" aria-labelledby="recipesTitle">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span></span>Die Sammlung</p>
+          <h2 id="recipesTitle">Alle Rezepte</h2>
+        </div>
+        <p class="section-note" id="resultInfo" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+          <input id="searchInput" type="search" placeholder="Suchen: Zimt, Mandeln, Schokolade …" aria-label="Rezepte durchsuchen" autocomplete="off">
+        </div>
+        <div class="chips" id="filterChips" role="group" aria-label="Nach Kategorie filtern"></div>
+        <label class="sort">
+          <span>Sortieren</span>
+          <select id="sortSelect">
+            <option value="empfohlen">Empfohlen</option>
+            <option value="schnell">Schnellste zuerst</option>
+            <option value="az">A – Z</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="grid" id="recipeGrid"></div>
+
+      <div class="empty" id="emptyState" hidden>
+        <p class="empty-title">Nichts gefunden.</p>
+        <p>Für „<span id="emptyQuery"></span>“ gibt es gerade kein Rezept. Vielleicht etwas kürzer suchen?</p>
+        <div class="empty-actions">
+          <button class="btn btn-ghost" id="resetFilters" type="button">Filter zurücksetzen</button>
+          <a class="btn btn-primary" href="#finder">Plätzchen-Finder starten</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="tipps" class="wrap tips" aria-labelledby="tipsTitle">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span></span>Handwerk statt Glück</p>
+          <h2 id="tipsTitle">Backtipps</h2>
+          <p class="section-lede">
+            Sechs Handgriffe, die über zarte oder zähe Plätzchen entscheiden, die häufigsten
+            Pannen mit ihrer Rettung und die Zahlen, die man am Backtisch wirklich braucht.
+          </p>
+        </div>
+      </div>
+
+      <div class="tip-grid">
+        <article class="tip">
+          <span class="tip-num">01</span>
+          <h3>Butter kalt verarbeiten</h3>
+          <p>Mürbeteig lebt von kalter Butter. Warme Butter macht ihn weich und die Plätzchen laufen beim Backen auseinander. Butter in Würfeln unterheben, nie schmelzen.</p>
+        </article>
+        <article class="tip">
+          <span class="tip-num">02</span>
+          <h3>Teig wirklich kühlen</h3>
+          <p>Eine Stunde im Kühlschrank ist kein Ritual, sondern Technik: Der Teig wird fest, lässt sich sauber ausstechen und verliert beim Backen weniger Form. Bei weichem Teig lieber zehn Minuten nachkühlen, als mit Mehl zu retten.</p>
+        </article>
+        <article class="tip">
+          <span class="tip-num">03</span>
+          <h3>Ofen vorheizen, Blech kalt lassen</h3>
+          <p>Heiße Bleche lassen den Teig schon vor dem Backen anbacken. Immer auf mittlerer Schiene backen und das nächste Blech erst aufschieben, wenn das vorige abgekühlt ist.</p>
+        </article>
+        <article class="tip">
+          <span class="tip-num">04</span>
+          <h3>Gleich dick ausrollen</h3>
+          <p>Gemischte Bleche kommen fast immer von ungleicher Dicke: 4 mm für zarte Ausstecher, 6 mm für Mürbeteig, 8 mm für Zimtsterne. Zwischen zwei Lagen Backpapier ausrollen – dann braucht der Teig kaum Mehl.</p>
+        </article>
+        <article class="tip">
+          <span class="tip-num">05</span>
+          <h3>Wiegen statt schöpfen</h3>
+          <p>Eine Tasse Mehl wiegt je nach Griff 120 bis 160 Gramm. Eine Küchenwaage macht aus jedem Rezept ein verlässliches – und Mehl wird nie in den Becher gedrückt, sondern locker eingefüllt.</p>
+        </article>
+        <article class="tip">
+          <span class="tip-num">06</span>
+          <h3>Auskühlen auf dem Gitter</h3>
+          <p>Nach dem Backen zwei Minuten auf dem Blech lassen, dann auf ein Gitter heben. Im Blech schwitzen sie und werden weich. Gefüllt, bestrichen oder glasiert wird erst, wenn sie ganz kalt sind.</p>
+        </article>
+      </div>
+
+      <div class="tips-extra">
+        <section class="trouble" aria-labelledby="troubleTitle">
+          <div class="block-head">
+            <h3 id="troubleTitle">Wenn etwas schiefgeht</h3>
+            <p>Erst nachsehen, dann neu backen: Fast jede Panne hat eine Ursache – und meist auch eine Rettung.</p>
+          </div>
+          <div class="trouble-list">
+            <details class="trouble-item">
+              <summary>Der Teig reißt beim Ausstechen</summary>
+              <p>Meist ist er zu kalt oder zu trocken. Fünf Minuten antauen lassen; reißt er weiter, einen Esslöffel Sahne oder Wasser einkneten. Zwischen zwei Lagen Backpapier ausrollen hilft zusätzlich.</p>
+            </details>
+            <details class="trouble-item">
+              <summary>Die Plätzchen laufen im Ofen auseinander</summary>
+              <p>Warme Butter, zu viel Zucker oder ein zu heißes, gefettetes Blech. Den Teig kalt stellen, Zucker genau abwiegen und auf Backpapier statt auf Fett backen.</p>
+            </details>
+            <details class="trouble-item">
+              <summary>Zimtsterne bleiben klebrig</summary>
+              <p>Sie sind zu dick oder wurden zu heiß gebacken. Acht Millimeter Dicke, den Ofen auf 200 °C vorheizen und dann ausschalten, zehn Minuten trocknen lassen – und die Glasur nur hauchdünn auftragen.</p>
+            </details>
+            <details class="trouble-item">
+              <summary>Das Gebäck wird hart</summary>
+              <p>Zu lange im Ofen, zu viel Mehl oder zu lange geknetet. Lieber zwei Minuten früher herausnehmen, denn auf dem Blech gart es nach. Harte Plätzchen werden in der Dose mit einer Apfelscheibe wieder weich.</p>
+            </details>
+            <details class="trouble-item">
+              <summary>Die Glasur läuft oder wird fleckig</summary>
+              <p>Der Keks war noch warm oder die Glasur zu dünn. Vollständig auskühlen lassen und die Glasur streichen statt gießen; Kuvertüre nie mit Wasser verdünnen.</p>
+            </details>
+            <details class="trouble-item">
+              <summary>Die Plätzchen kleben am Blech</summary>
+              <p>Zu früh genommen oder ohne Backpapier gebacken. Nach dem Backen zwei Minuten warten, dann mit einem dünnen Spatel lösen – warm reißen die Böden ein.</p>
+            </details>
+            <details class="trouble-item">
+              <summary>Der Schokoüberzug wird grau</summary>
+              <p>Feuchtigkeit oder zu warme Lagerung. Über dem Wasserbad schmelzen, nicht über 45 °C erhitzen, trocken aushärten lassen und bei 15 bis 18 °C lagern.</p>
+            </details>
+          </div>
+        </section>
+
+        <aside class="tips-ref" aria-label="Maße, Mengen und Lagerung">
+          <section>
+            <h3>Maße &amp; Mengen</h3>
+            <dl class="measure-list">
+              <div><dt>1 EL</dt><dd>15 ml</dd></div>
+              <div><dt>1 TL</dt><dd>5 ml</dd></div>
+              <div><dt>1 Tasse</dt><dd>150 ml</dd></div>
+              <div><dt>1 Päckchen Vanillezucker</dt><dd>8 g</dd></div>
+              <div><dt>1 Päckchen Backpulver</dt><dd>16 g</dd></div>
+              <div><dt>1 Ei, Größe M</dt><dd>50 g ohne Schale</dd></div>
+              <div><dt>Eiweiß / Eigelb</dt><dd>30 g / 20 g</dd></div>
+              <div><dt>Umluft statt Ober-/Unterhitze</dt><dd>20 °C weniger</dd></div>
+            </dl>
+          </section>
+          <section>
+            <h3>So bleibt es lange gut</h3>
+            <ul class="store-list">
+              <li>Mürbeteig ohne Füllung: drei bis vier Wochen in der Blechdose.</li>
+              <li>Zimtsterne und Makronen: zwei Wochen – eine Apfelscheibe in der Dose hält sie weich.</li>
+              <li>Gefüllt oder glasiert: zwei Wochen, einlagig und mit Backpapier zwischen den Lagen.</li>
+              <li>Mit Schokolade: trocken bei 15 bis 18 °C, nie im Kühlschrank.</li>
+              <li>Ungefüllt einfrieren: bis drei Monate, portionsweise in der Dose.</li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p class="footer-brand">Keksdose</p>
+      <p class="footer-note">Alle Mengen für ein normales Blech. Guten Appetit — und schöne Adventsabende.</p>
+    </div>
+  </footer>
+
+  <div class="backdrop" id="backdrop" hidden></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"></aside>
+
+  <div class="backdrop" id="listBackdrop" hidden></div>
+  <aside class="drawer list-drawer" id="listPanel" role="dialog" aria-modal="true" aria-labelledby="listTitle" aria-hidden="true"></aside>
+
+  <script src="recipes.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

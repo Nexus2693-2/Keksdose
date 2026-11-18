@@ -1,0 +1,1202 @@
+/* ---------- Keksdose — Rezeptlogik ---------- */
+(() => {
+  'use strict';
+
+  const RECIPES = window.RECIPES || [];
+  const TAG_ORDER = ['Klassiker', 'Schokolade', 'Nüsse', 'Fruchtig', 'Vegan', 'Schnell', 'Waffeln'];
+  const CUTTER_MIN = 1;
+  const CUTTER_MAX = 10;
+
+  const state = {
+    tag: 'Alle',
+    query: '',
+    sort: 'empfohlen',
+    open: null,
+    scale: 1,
+    cutter: null,
+    done: new Set()
+  };
+
+  const el = {
+    grid: document.getElementById('recipeGrid'),
+    chips: document.getElementById('filterChips'),
+    search: document.getElementById('searchInput'),
+    sort: document.getElementById('sortSelect'),
+    info: document.getElementById('resultInfo'),
+    empty: document.getElementById('emptyState'),
+    emptyQuery: document.getElementById('emptyQuery'),
+    reset: document.getElementById('resetFilters'),
+    heroArt: document.getElementById('heroArt'),
+    drawer: document.getElementById('drawer'),
+    backdrop: document.getElementById('backdrop'),
+    body: document.body,
+    listToggle: document.getElementById('listToggle'),
+    listCount: document.getElementById('listCount'),
+    listPanel: document.getElementById('listPanel'),
+    listBackdrop: document.getElementById('listBackdrop')
+  };
+
+  /* ---------- Kleine Helfer ---------- */
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+
+  const FRACTIONS = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
+
+  function fmtAmount(value) {
+    if (!isFinite(value) || value <= 0) return '0';
+    if (value >= 10) return String(Math.round(value));
+    const snapped = Math.round(value * 4) / 4;
+    const whole = Math.floor(snapped + 1e-9);
+    const frac = Math.round((snapped - whole) * 100) / 100;
+    if (!frac) return String(whole);
+    return (whole ? whole + ' ' : '') + (FRACTIONS[frac] || String(frac).replace('.', ','));
+  }
+
+  const totalTime = (r) => r.zeit + (r.kuehl || 0);
+
+  // Stückzahl: bei Ausstech-Plätzchen hängt sie an der Fläche des Ausstechers,
+  // also am Quadrat des Durchmessers.
+  function basePieces(r) {
+    if (!r.ausstecher || !state.cutter) return r.stueck;
+    return r.ausstecher.stueck * Math.pow(r.ausstecher.d / state.cutter, 2);
+  }
+  const pieces = (r) => Math.max(1, Math.round(basePieces(r) * state.scale));
+  const maxPieces = (r) => r.stueckMax || r.stueck * 4;
+
+  /* ---------- Cookie-Illustrationen (SVG) ---------- */
+  let uid = 0;
+
+  function cookieArt(r) {
+    const id = 'cm' + (++uid);
+    const { shape, dough, accent } = r;
+    const edge = 'rgba(72,44,24,.22)';
+    const stroke = `stroke="${edge}" stroke-width="2"`;
+
+    const speckles = (color, pts) => pts
+      .map(([cx, cy, rr]) => `<circle cx="${cx}" cy="${cy}" r="${rr}" fill="${color}" opacity=".5"/>`)
+      .join('');
+
+    switch (shape) {
+      case 'star':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Zimtstern">
+          <path d="M50 6 L61.2 34.6 L91.9 36.4 L68.1 55.9 L75.9 85.6 L50 69 L24.1 85.6 L31.9 55.9 L8.1 36.4 L38.8 34.6 Z"
+            fill="${dough}" ${stroke} stroke-linejoin="round"/>
+          <g transform="translate(50 50) scale(.66) translate(-50 -50)">
+            <path d="M50 6 L61.2 34.6 L91.9 36.4 L68.1 55.9 L75.9 85.6 L50 69 L24.1 85.6 L31.9 55.9 L8.1 36.4 L38.8 34.6 Z"
+              fill="${accent}" opacity=".92"/>
+          </g>
+          <circle cx="50" cy="50" r="3.4" fill="${dough}" opacity=".85"/>
+        </svg>`;
+
+      case 'crescent':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Vanillekipferl">
+          <g transform="rotate(-6 50 50)">
+            <path d="M11 30 C 20 88, 80 88, 89 30 C 76 62, 24 62, 11 30 Z"
+              fill="${dough}" ${stroke} stroke-linejoin="round"/>
+            <path d="M22 48 C 33 58, 67 58, 78 48" fill="none" stroke="${accent}" stroke-width="2.4"
+              stroke-linecap="round" opacity=".55"/>
+            ${speckles(accent, [[34, 56, 2], [50, 62, 1.8], [66, 56, 2], [50, 72, 1.6]])}
+          </g>
+        </svg>`;
+
+      case 'swirl':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Spritzgebäck">
+          <path d="M64 20 C 34 20, 32 48, 50 52 C 70 57, 68 80, 36 80"
+            fill="none" stroke="rgba(72,44,24,.22)" stroke-width="20" stroke-linecap="round"/>
+          <path d="M64 20 C 34 20, 32 48, 50 52 C 70 57, 68 80, 36 80"
+            fill="none" stroke="${dough}" stroke-width="17" stroke-linecap="round"/>
+          <path d="M64 22 C 38 23, 36 46, 51 51" fill="none" stroke="${accent}" stroke-width="2"
+            stroke-linecap="round" opacity=".35"/>
+        </svg>`;
+
+      case 'half':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Schwarz-Weiß-Gebäck">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <path d="M50 12 A 38 38 0 0 1 50 88 Z" fill="${accent}"/>
+          <path d="M50 12 V 88" stroke="rgba(255,255,255,.35)" stroke-width="1.6"/>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="${edge}" stroke-width="2"/>
+          <path d="M36 34 C 42 42, 40 48, 34 52" fill="none" stroke="rgba(255,255,255,.45)"
+            stroke-width="1.8" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'heart':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Lebkuchenherz">
+          <path d="M50 86 C 14 62, 12 32, 32 24 C 43 20, 50 28, 50 35 C 50 28, 57 20, 68 24 C 88 32, 86 62, 50 86 Z"
+            fill="${dough}" ${stroke}/>
+          <path d="M31 42 C 40 52, 60 52, 69 42" fill="none" stroke="${accent}" stroke-width="2.6"
+            stroke-linecap="round" opacity=".8"/>
+          ${speckles(accent, [[40, 60, 2], [50, 66, 2], [60, 60, 2], [50, 54, 1.7]])}
+        </svg>`;
+
+      case 'dome':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Kokosmakrone">
+          <path d="M15 76 C 9 40, 31 20, 50 20 C 69 20, 91 40, 85 76 Z"
+            fill="${dough}" ${stroke} stroke-linejoin="round"/>
+          <path d="M15 76 H 85" stroke="${edge}" stroke-width="2" stroke-linecap="round"/>
+          ${speckles(accent, [[36, 44, 2.2], [50, 38, 2], [64, 44, 2.2], [44, 56, 2], [58, 58, 2.4], [34, 64, 1.8], [68, 64, 1.8]])}
+        </svg>`;
+
+      case 'circle':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Heidesand">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <path d="M38 30 C 46 40, 43 50, 36 58" fill="none" stroke="rgba(255,255,255,.5)"
+            stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M62 66 C 68 58, 70 50, 66 42" fill="none" stroke="rgba(255,255,255,.4)"
+            stroke-width="2" stroke-linecap="round"/>
+          ${speckles(accent, [[44, 46, 1.8], [58, 40, 1.6], [56, 62, 1.8], [40, 62, 1.5]])}
+        </svg>`;
+
+      case 'crackle':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Brownie-Cookie">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <path d="M30 36 L42 46 L36 56 L48 64" fill="none" stroke="${accent}" stroke-width="2.6"
+            stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
+          <path d="M68 34 L60 46 L66 54" fill="none" stroke="${accent}" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
+          <rect x="52" y="54" width="11" height="9" rx="2.5" fill="${accent}" opacity=".85"/>
+          <rect x="30" y="62" width="9" height="8" rx="2" fill="${accent}" opacity=".7"/>
+          <circle cx="64" cy="63" r="3" fill="${accent}" opacity=".65"/>
+        </svg>`;
+
+      case 'linzer':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Linzer Auge">
+          <defs><mask id="${id}">
+            <rect width="100" height="100" fill="#fff"/>
+            <circle cx="50" cy="50" r="12.5" fill="#000"/>
+          </mask></defs>
+          <circle cx="50" cy="50" r="12.5" fill="${accent}"/>
+          <circle cx="50" cy="50" r="40" fill="${dough}" ${stroke} mask="url(#${id})"/>
+          <circle cx="50" cy="50" r="12.5" fill="none" stroke="${edge}" stroke-width="1.6"/>
+          <circle cx="50" cy="50" r="12.5" fill="none" stroke="rgba(255,255,255,.5)" stroke-width=".8"/>
+          <path d="M24 38 C 32 30, 42 26, 50 25" fill="none" stroke="rgba(255,255,255,.5)"
+            stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'almond':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Mandeltaler">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <g fill="${accent}" stroke="${edge}" stroke-width="1.6">
+            <ellipse cx="50" cy="29" rx="10" ry="5.4"/>
+            <ellipse cx="33" cy="44" rx="10" ry="5.4" transform="rotate(-42 33 44)"/>
+            <ellipse cx="67" cy="44" rx="10" ry="5.4" transform="rotate(42 67 44)"/>
+            <ellipse cx="50" cy="66" rx="10" ry="5.4"/>
+            <ellipse cx="50" cy="47" rx="9" ry="4.8" transform="rotate(90 50 47)"/>
+          </g>
+          <path d="M22 34 C 30 24, 39 20, 47 20" fill="none" stroke="rgba(255,255,255,.5)"
+            stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'jamheart':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Himbeerherz">
+          <path d="M50 86 C 14 62, 12 32, 32 24 C 43 20, 50 28, 50 35 C 50 28, 57 20, 68 24 C 88 32, 86 62, 50 86 Z"
+            fill="${dough}" ${stroke}/>
+          <g transform="translate(50 54) scale(.32) translate(-50 -54)">
+            <path d="M50 86 C 14 62, 12 32, 32 24 C 43 20, 50 28, 50 35 C 50 28, 57 20, 68 24 C 88 32, 86 62, 50 86 Z"
+              fill="${accent}" stroke="rgba(72,44,24,.28)" stroke-width="5"/>
+          </g>
+          <path d="M27 40 C 33 31, 40 27, 46 26" fill="none" stroke="rgba(255,255,255,.45)"
+            stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'brittle':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Krokanttaler">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <g fill="${r.accent2 || accent}" opacity=".9">
+            <rect x="34" y="31" width="13" height="9" rx="2" transform="rotate(-14 40 35)"/>
+            <rect x="52" y="39" width="14" height="9" rx="2" transform="rotate(12 59 43)"/>
+            <rect x="29" y="51" width="12" height="8" rx="2" transform="rotate(22 35 55)"/>
+            <rect x="50" y="57" width="13" height="8" rx="2" transform="rotate(-8 56 61)"/>
+            <rect x="41" y="44" width="10" height="7" rx="2" transform="rotate(38 46 47)"/>
+          </g>
+          <path d="M24 40 C 30 28, 42 22, 52 22" fill="none" stroke="rgba(255,255,255,.4)"
+            stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'nougat':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Nougattaler">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <rect x="32" y="32" width="36" height="36" rx="10" fill="${accent}" transform="rotate(9 50 50)"/>
+          <path d="M37 43 C 45 51, 57 51, 65 43" fill="none" stroke="${r.accent2 || accent}"
+            stroke-width="3" stroke-linecap="round" opacity=".6"/>
+          <path d="M24 40 C 30 29, 40 23, 50 23" fill="none" stroke="rgba(255,255,255,.4)"
+            stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'ring':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Genießerkringel">
+          <circle cx="50" cy="50" r="33" fill="none" stroke="rgba(72,44,24,.22)" stroke-width="19"/>
+          <circle cx="50" cy="50" r="33" fill="none" stroke="${dough}" stroke-width="17"/>
+          <circle cx="50" cy="50" r="33" fill="none" stroke="${accent}" stroke-width="7"
+            stroke-dasharray="20 7" stroke-linecap="round" opacity=".85"/>
+          <path d="M22 37 C 28 29, 36 25, 44 24" fill="none" stroke="rgba(255,255,255,.45)"
+            stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'oval':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Orangenzunge">
+          <g transform="rotate(-14 50 50)">
+            <ellipse cx="50" cy="50" rx="40" ry="23" fill="${dough}" ${stroke}/>
+            <path d="M50 27 A 40 23 0 0 1 50 73 Z" fill="${accent}" opacity=".9"/>
+            <path d="M17 42 C 23 33, 31 29, 39 28" fill="none" stroke="rgba(255,255,255,.45)"
+              stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+        </svg>`;
+
+      case 'rect':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Schnitte">
+          <g transform="rotate(-4 50 50)">
+            <rect x="15" y="30" width="70" height="42" rx="8" fill="${dough}" ${stroke}/>
+            <path d="M23 30 H77 A 8 8 0 0 1 85 38 V45 H15 V38 A 8 8 0 0 1 23 30 Z"
+              fill="${accent}" opacity=".92"/>
+            <path d="M25 61 H75" stroke="rgba(72,44,24,.14)" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>`;
+
+      case 'paw':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Tatze">
+          <g fill="${dough}" ${stroke}>
+            <ellipse cx="50" cy="60" rx="21" ry="16"/>
+            <ellipse cx="29" cy="35" rx="7.5" ry="9"/>
+            <ellipse cx="43" cy="27" rx="7.5" ry="9"/>
+            <ellipse cx="57" cy="27" rx="7.5" ry="9"/>
+            <ellipse cx="71" cy="35" rx="7.5" ry="9"/>
+          </g>
+          <circle cx="50" cy="60" r="7" fill="${accent}" opacity=".9"/>
+        </svg>`;
+
+      case 'oat':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Haferkeks">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <g fill="${accent}" opacity=".55">
+            <ellipse cx="40" cy="40" rx="8" ry="4.2" transform="rotate(-24 40 40)"/>
+            <ellipse cx="60" cy="36" rx="7.4" ry="4" transform="rotate(18 60 36)"/>
+            <ellipse cx="66" cy="56" rx="8" ry="4.2" transform="rotate(-10 66 56)"/>
+            <ellipse cx="45" cy="62" rx="7.6" ry="4" transform="rotate(30 45 62)"/>
+            <ellipse cx="52" cy="48" rx="7" ry="3.8" transform="rotate(-46 52 48)"/>
+          </g>
+          ${speckles('#6a4a32', [[36, 52, 1.8], [58, 70, 1.6], [70, 44, 1.4]])}
+        </svg>`;
+
+      case 'taler':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Himbeer-Taler">
+          <circle cx="52" cy="55" r="40" fill="${r.rim || dough}" ${stroke}/>
+          <circle cx="50" cy="51" r="39" fill="${r.accent2 || accent}"/>
+          <circle cx="48" cy="47" r="38" fill="${dough}" ${stroke}/>
+          <circle cx="48" cy="46" r="30" fill="${accent}"/>
+          <path d="M22 42 C 29 31, 40 25, 51 24" fill="none" stroke="rgba(255,255,255,.5)"
+            stroke-width="2.6" stroke-linecap="round"/>
+          ${speckles('#ffffff', [[36, 36, 1.9], [58, 34, 1.6], [65, 50, 1.7], [34, 56, 1.6], [50, 62, 1.8], [43, 47, 1.5]])}
+        </svg>`;
+
+      case 'waffle':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Herzwaffel">
+          <defs><clipPath id="${id}">
+            <path d="M50 88 C 12 63, 10 33, 30 24 C 42 19, 50 27, 50 35 C 50 27, 58 19, 70 24 C 90 33, 88 63, 50 88 Z"/>
+          </clipPath></defs>
+          <path d="M50 88 C 12 63, 10 33, 30 24 C 42 19, 50 27, 50 35 C 50 27, 58 19, 70 24 C 90 33, 88 63, 50 88 Z"
+            fill="${dough}" ${stroke} stroke-linejoin="round"/>
+          <g clip-path="url(#${id})">
+            <g stroke="${edge}" stroke-width="2.6" opacity=".45" stroke-linecap="round">
+              <path d="M16 20V84M28 16V88M40 14V90M52 14V90M64 16V88M76 20V84M88 24V80"/>
+              <path d="M12 26H88M12 38H88M12 50H88M12 62H88M12 74H88"/>
+            </g>
+            <path d="M26 34 C 40 28, 60 28, 74 34" fill="none" stroke="rgba(255,255,255,.45)"
+              stroke-width="2.4" stroke-linecap="round"/>
+          </g>
+          <path d="M50 88 C 12 63, 10 33, 30 24 C 42 19, 50 27, 50 35 C 50 27, 58 19, 70 24 C 90 33, 88 63, 50 88 Z"
+            fill="none" stroke="${edge}" stroke-width="2.4"/>
+        </svg>`;
+
+      case 'thumbprint':
+      default:
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="Engelsauge">
+          <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
+          <circle cx="50" cy="50" r="14" fill="${accent}"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="rgba(72,44,24,.25)" stroke-width="1.6"/>
+          <ellipse cx="45" cy="45" rx="4" ry="2.6" fill="#fff" opacity=".4"/>
+          <path d="M28 34 C 36 28, 44 26, 50 26" fill="none" stroke="rgba(255,255,255,.5)"
+            stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+    }
+  }
+
+  /* ---------- Icons ---------- */
+  const icons = {
+    clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+    flake: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/><path d="M12 6.5 9.8 4.6M12 6.5l2.2-1.9M12 17.5l-2.2 1.9M12 17.5l2.2 1.9"/></svg>',
+    cookie: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="9.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="9.5" r=".9" fill="currentColor" stroke="none"/><circle cx="13" cy="14.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r=".8" fill="currentColor" stroke="none"/></svg>',
+    level: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17v-5M9.3 17V8M14.6 17v-7M20 17V5"/></svg>',
+    close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>',
+    print: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5"/><rect x="3.5" y="9" width="17" height="7.5" rx="2"/><path d="M7 14h10v6H7z"/></svg>',
+    basket: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>'
+  };
+
+  /* ---------- Filter & Grid ---------- */
+  function availableTags() {
+    return ['Alle'].concat(TAG_ORDER.filter((t) => RECIPES.some((r) => r.tags.includes(t))));
+  }
+
+  function renderChips() {
+    el.chips.innerHTML = availableTags().map((t) => `
+      <button class="chip" type="button" data-tag="${esc(t)}" aria-pressed="${t === state.tag}">${esc(t)}</button>
+    `).join('');
+  }
+
+  function visibleRecipes() {
+    const q = state.query.trim().toLowerCase();
+    let list = RECIPES.filter((r) => {
+      const tagOk = state.tag === 'Alle' || r.tags.includes(state.tag);
+      if (!tagOk) return false;
+      if (!q) return true;
+      const haystack = [
+        r.name, r.kicker, r.level, r.tags.join(' '), r.oma ? 'Omas Original' : '',
+        r.zutaten.map((z) => z.n).join(' '),
+        r.schritte.join(' ')
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+
+    if (state.sort === 'schnell') list.sort((a, b) => totalTime(a) - totalTime(b));
+    else if (state.sort === 'az') list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    return list;
+  }
+
+  function cardHTML(r, index) {
+    const num = String(index + 1).padStart(2, '0');
+    return `
+      <article class="card" data-id="${esc(r.id)}" tabindex="0" role="button"
+        aria-label="Rezept ${esc(r.name)} öffnen">
+        <div class="card-art" style="--tint:${esc(r.tint)}">
+          <span class="card-num">${num}</span>
+          ${r.oma ? '<span class="card-oma">Omas Original</span>' : ''}
+          ${cookieArt(r)}
+        </div>
+        <h3>${esc(r.name)}</h3>
+        <p class="card-kicker">${esc(r.kicker)}</p>
+        <div class="card-meta">
+          <span>${r.zeit} Min</span><i>·</i>
+          <span>${r.stueck} Stück</span><i>·</i>
+          <span>${esc(r.level)}</span>
+        </div>
+        <div class="card-tags">${r.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>
+      </article>`;
+  }
+
+  function renderGrid() {
+    const list = visibleRecipes();
+    el.grid.innerHTML = list.map(cardHTML).join('');
+
+    const total = RECIPES.length;
+    el.info.textContent = list.length === total
+      ? `${total} Rezepte`
+      : `${list.length} von ${total} Rezepten`;
+
+    const isFiltered = list.length === 0;
+    el.empty.hidden = !isFiltered;
+    el.grid.hidden = isFiltered;
+    if (isFiltered) el.emptyQuery.textContent = state.query.trim() || state.tag;
+  }
+
+  /* ---------- Drawer ---------- */
+  function metaHTML(r) {
+    const items = [
+      `<li>${icons.clock}${r.zeit} Min Backzeit &amp; Arbeit</li>`
+    ];
+    if (r.kuehl) items.push(`<li>${icons.flake}${r.kuehl} Min kühlen</li>`);
+    items.push(`<li>${icons.cookie}<span id="metaPieces">${r.stueck} Stück</span></li>`);
+    items.push(`<li>${icons.level}${esc(r.level)}</li>`);
+    return `<ul class="meta-list">${items.join('')}</ul>`;
+  }
+
+  function ingredientHTML(r) {
+    return r.zutaten.map((z, i) => {
+      const amount = z.m ? `${fmtAmount(z.m * state.scale)}${z.u ? ' ' + esc(z.u) : ''}` : '';
+      const done = state.done.has('z' + i);
+      return `<li class="${done ? 'done' : ''}">
+        <button class="tick" type="button" data-kind="z" data-index="${i}"
+          aria-pressed="${done}" aria-label="Zutat ${esc(z.n)} abhaken">${icons.check}</button>
+        <span><span class="amount"><b>${amount}</b></span> <span class="iname">${esc(z.n)}</span></span>
+      </li>`;
+    }).join('');
+  }
+
+  function stepsHTML(r) {
+    return r.schritte.map((s, i) => {
+      const done = state.done.has('s' + i);
+      return `<li class="${done ? 'done' : ''}" data-kind="s" data-index="${i}" tabindex="0">
+        <span>${esc(s)}</span></li>`;
+    }).join('');
+  }
+
+  const fmtCm = (v) => String(v).replace('.', ',');
+
+  function cutterHTML(r) {
+    if (!r.ausstecher) return '';
+    return `
+      <div class="cutter">
+        <div class="cutter-head">
+          <span class="cutter-title">Dein Ausstecher</span>
+          <span class="cutter-result">Ø <strong id="cutterD">${fmtCm(state.cutter)}</strong> cm ·
+            ≈ <strong id="cutterCount">${pieces(r)}</strong> Stück</span>
+        </div>
+        <input class="cutter-range" id="cutterRange" type="range" min="${CUTTER_MIN}"
+          max="${CUTTER_MAX}" step="0.5" value="${state.cutter}"
+          aria-label="Durchmesser des Ausstechers in Zentimetern">
+        <div class="cutter-scale" aria-hidden="true"><span>${CUTTER_MIN} cm</span><span>5,5</span><span>${CUTTER_MAX} cm</span></div>
+        <p class="hint">Gerechnet aus der Teigmenge: kleinere Ausstecher ergeben mehr, größere weniger Stücke.
+          ${r.ausstecher.hinweis ? esc(r.ausstecher.hinweis) : ''}</p>
+      </div>`;
+  }
+
+  // Rezepte, bei denen man die Stückzahl direkt zählt (z. B. Waffeln),
+  // bekommen einen Plus/Minus-Regler statt der Portionsfaktoren.
+  function portionHTML(r) {
+    if (r.stueckSchritt) {
+      return `
+        <div class="scale-btns" role="group" aria-label="Anzahl der Stücke">
+          <button type="button" data-step="-1" aria-label="Ein Stück weniger">−</button>
+          <button type="button" data-step="1" aria-label="Ein Stück mehr">+</button>
+        </div>`;
+    }
+    return `
+      <div class="scale-btns" role="group" aria-label="Portionsgröße anpassen">
+        ${[0.5, 1, 1.5, 2].map((f) => `<button type="button" data-scale="${f}"
+          aria-pressed="${f === state.scale}">${f === 1 ? '1×' : String(f).replace('.', ',') + '×'}</button>`).join('')}
+      </div>`;
+  }
+
+  function stepPieces(dir) {
+    const r = state.open;
+    if (!r || !r.stueckSchritt) return;
+    const next = Math.max(1, Math.min(maxPieces(r), pieces(r) + dir * r.stueckSchritt));
+    state.scale = next / r.stueck;
+    refreshIngredients();
+  }
+
+  function drawerHTML(r) {
+    return `
+      <div class="drawer-scroll">
+        <div class="drawer-head">
+          <div class="drawer-top">
+            <div class="drawer-tags">${r.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>
+            <button class="icon-btn" id="closeDrawer" type="button" aria-label="Rezept schließen">${icons.close}</button>
+          </div>
+          <h2 id="drawerTitle">${esc(r.name)}</h2>
+          ${r.oma ? '<p class="oma-note">Omas Original</p>' : ''}
+          <p class="drawer-lede">${esc(r.kicker)}</p>
+          ${metaHTML(r)}
+        </div>
+        <div class="drawer-art" style="--tint:${esc(r.tint)}">${cookieArt(r)}</div>
+        <div class="drawer-body">
+          <div class="scale-row">
+            <span class="scale-label">Zutaten für <strong id="pieceCount">${pieces(r)} Stück</strong></span>
+            ${portionHTML(r)}
+          </div>
+          ${cutterHTML(r)}
+          <h3>Zutaten</h3>
+          <ul class="zutaten" id="zutatenList">${ingredientHTML(r)}</ul>
+          <p class="hint">Mengen beim Skalieren gerundet — Ei und Gewürze lieber nach Gefühl.</p>
+          <h3>Zubereitung</h3>
+          <ol class="schritte" id="schritteList">${stepsHTML(r)}</ol>
+          <p class="tipp"><strong>Gut zu wissen</strong>${esc(r.tipp)}</p>
+          <div class="drawer-actions">
+            <button class="btn btn-primary" type="button" id="addToList">${icons.basket}Auf die Einkaufsliste</button>
+            <button class="btn btn-ghost" type="button" id="printBtn">${icons.print}Rezept drucken</button>
+            <button class="btn btn-ghost" type="button" id="closeDrawerBottom">Zurück zur Übersicht</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  let lastFocused = null;
+
+  function openRecipe(id, updateHash = true) {
+    const r = RECIPES.find((x) => x.id === id);
+    if (!r) return;
+
+    lastFocused = document.activeElement;
+    state.open = r;
+    state.scale = 1;
+    state.cutter = r.ausstecher ? r.ausstecher.d : null;
+    state.done = new Set();
+
+    el.drawer.innerHTML = drawerHTML(r);
+    el.drawer.classList.add('open');
+    el.drawer.setAttribute('aria-hidden', 'false');
+    el.backdrop.hidden = false;
+    requestAnimationFrame(() => el.backdrop.classList.add('show'));
+    el.body.classList.add('locked');
+
+    if (updateHash) history.replaceState(null, '', '#rezept/' + id);
+    const closeBtn = el.drawer.querySelector('#closeDrawer');
+    if (closeBtn) closeBtn.focus({ preventScroll: true });
+    el.drawer.querySelector('.drawer-scroll').scrollTop = 0;
+  }
+
+  function closeRecipe() {
+    if (!state.open) return;
+    state.open = null;
+    el.drawer.classList.remove('open');
+    el.drawer.setAttribute('aria-hidden', 'true');
+    el.backdrop.classList.remove('show');
+    el.body.classList.remove('locked');
+    window.setTimeout(() => {
+      if (!state.open) el.backdrop.hidden = true;
+    }, 300);
+    if (location.hash.startsWith('#rezept/')) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    if (lastFocused && document.contains(lastFocused)) lastFocused.focus({ preventScroll: true });
+  }
+
+  function updateCounts() {
+    const r = state.open;
+    if (!r) return;
+    const n = pieces(r);
+    const count = el.drawer.querySelector('#pieceCount');
+    if (count) count.textContent = n + ' Stück';
+    const cutterCount = el.drawer.querySelector('#cutterCount');
+    if (cutterCount) cutterCount.textContent = String(n);
+    const cutterD = el.drawer.querySelector('#cutterD');
+    if (cutterD) cutterD.textContent = fmtCm(state.cutter);
+    el.drawer.querySelectorAll('[data-scale]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.scale) === state.scale));
+    });
+    el.drawer.querySelectorAll('[data-step]').forEach((b) => {
+      b.disabled = Number(b.dataset.step) < 0 ? n <= 1 : n >= maxPieces(r);
+    });
+    const metaPieces = el.drawer.querySelector('#metaPieces');
+    if (metaPieces && r.stueckSchritt) metaPieces.textContent = n + ' Stück';
+    const range = el.drawer.querySelector('#cutterRange');
+    if (range && Number(range.value) !== state.cutter) range.value = String(state.cutter);
+  }
+
+  function refreshIngredients() {
+    const r = state.open;
+    if (!r) return;
+    const list = el.drawer.querySelector('#zutatenList');
+    if (list) list.innerHTML = ingredientHTML(r);
+    updateCounts();
+  }
+
+  function toggleItem(kind, index, node) {
+    const key = kind + index;
+    const on = state.done.has(key);
+    if (on) state.done.delete(key); else state.done.add(key);
+    node.setAttribute('aria-pressed', String(!on));
+    if (kind === 'z') node.closest('li').classList.toggle('done', !on);
+    else node.classList.toggle('done', !on);
+  }
+
+  /* ---------- Plätzchen-Finder ---------- */
+  const TRAIT_LABELS = {
+    muerbe: 'mürbe', knusprig: 'knusprig', weich: 'weich', gefuellt: 'gefüllt',
+    schoko: 'Schokolade', nussig: 'Nüsse', fruchtig: 'fruchtig',
+    klassisch: 'klassisch', vegan: 'vegan', dekorativ: 'dekorativ', zimtig: 'Zimt'
+  };
+
+  const FINDER_QUESTIONS = [
+    {
+      q: 'Wonach ist dir heute zumute?',
+      hint: 'Der Geschmack gibt den Ausschlag.',
+      options: [
+        { label: 'Schokolade und Kakao', w: { schoko: 3, weich: 1 } },
+        { label: 'Nüsse, Mandeln, Marzipan', w: { nussig: 3 } },
+        { label: 'Fruchtig und säuerlich', w: { fruchtig: 3 } },
+        { label: 'Klassisch: Vanille und Zimt', w: { klassisch: 2, zimtig: 2 } }
+      ]
+    },
+    {
+      q: 'Wie soll es sich anfühlen?',
+      hint: 'Mürbe zerfällt, knusprig kracht, weich gibt nach.',
+      options: [
+        { label: 'Mürbe und zart', w: { muerbe: 3 } },
+        { label: 'Knusprig und krachend', w: { knusprig: 3 } },
+        { label: 'Weich und saftig', w: { weich: 3 } },
+        { label: 'Mit Füllung in der Mitte', w: { gefuellt: 3 } }
+      ]
+    },
+    {
+      q: 'Wie viel Zeit hast du?',
+      hint: 'Kühlzeit rechnen wir mit.',
+      options: [
+        { label: 'Unter 30 Minuten', w: { schnell: 3 } },
+        { label: 'Etwa eine Stunde', w: { mittelzeit: 2 } },
+        { label: 'Ein ganzer Nachmittag', w: { dekorativ: 3 } },
+        { label: 'Zeit ist egal', w: {} }
+      ]
+    },
+    {
+      q: 'Für welchen Anlass?',
+      hint: 'Danach richtet sich, wie viel Verzierung sich lohnt.',
+      options: [
+        { label: 'Für uns zuhause, zum Kaffee', w: { klassisch: 1, muerbe: 1 } },
+        { label: 'Für Gäste auf der Platte', w: { dekorativ: 2, gefuellt: 1 } },
+        { label: 'Zum Verschenken in der Dose', w: { dekorativ: 2, muerbe: 1 } },
+        { label: 'Mit Kindern backen', w: { schnell: 2, klassisch: 1 } }
+      ]
+    },
+    {
+      q: 'Muss etwas draußen bleiben?',
+      hint: 'Allergien und Vorlieben.',
+      options: [
+        { label: 'Ohne Nüsse und Mandeln', w: { nussfrei: 3 } },
+        { label: 'Ohne Ei und Butter (vegan)', w: { vegan: 4 } },
+        { label: 'Ohne Schokolade', w: { schokofrei: 3 } },
+        { label: 'Nein, alles erlaubt', w: { klassisch: 1 } }
+      ]
+    },
+    {
+      q: 'Wie viel Aufwand darf es sein?',
+      hint: 'Von „schnell zusammengerührt“ bis „darf ruhig dauern“.',
+      options: [
+        { label: 'So einfach wie möglich', w: { einfach: 3 } },
+        { label: 'Gerne etwas knifflig', w: { mittel: 2 } },
+        { label: 'Ich darf mich austoben', w: { aufwendig: 3, dekorativ: 2 } },
+        { label: 'Egal, ich nehme, was kommt', w: {} }
+      ]
+    }
+  ];
+
+  const finder = { step: 0, picks: [] };
+  const fEl = {
+    intro: document.getElementById('finderIntro'),
+    quiz: document.getElementById('finderQuiz'),
+    result: document.getElementById('finderResult'),
+    start: document.getElementById('finderStart'),
+    back: document.getElementById('finderBack'),
+    bar: document.getElementById('finderBar'),
+    count: document.getElementById('finderCount'),
+    question: document.getElementById('finderQuestion'),
+    options: document.getElementById('finderOptions'),
+    hint: document.getElementById('finderHint')
+  };
+
+  function showFinderPanel(mode) {
+    if (!fEl.intro) return;
+    fEl.intro.hidden = mode !== 'intro';
+    fEl.quiz.hidden = mode !== 'quiz';
+    fEl.result.hidden = mode !== 'result';
+  }
+
+  function renderQuestion() {
+    const item = FINDER_QUESTIONS[finder.step];
+    const total = FINDER_QUESTIONS.length;
+    if (!item) return;
+
+    fEl.bar.style.width = Math.round((finder.step / total) * 100) + '%';
+    fEl.count.textContent = 'Frage ' + (finder.step + 1) + ' von ' + total;
+    fEl.question.textContent = item.q;
+    fEl.hint.textContent = item.hint || '';
+    fEl.back.hidden = finder.step === 0;
+    fEl.options.innerHTML = item.options.map((o, i) => `
+      <button class="finder-option" type="button" data-opt="${i}">
+        <span class="dot">${i + 1}</span><span>${esc(o.label)}</span>
+      </button>`).join('');
+  }
+
+  function pickOption(index) {
+    finder.picks[finder.step] = index;
+    if (finder.step < FINDER_QUESTIONS.length - 1) {
+      finder.step += 1;
+      renderQuestion();
+      fEl.question.focus({ preventScroll: true });
+    } else {
+      renderFinderResult();
+    }
+  }
+
+  function finderMatches() {
+    const weights = {};
+    FINDER_QUESTIONS.forEach((q, i) => {
+      const opt = q.options[finder.picks[i]];
+      if (!opt) return;
+      Object.entries(opt.w).forEach(([k, v]) => { weights[k] = (weights[k] || 0) + v; });
+    });
+    const max = Object.values(weights).filter((v) => v > 0).reduce((a, b) => a + b, 0) || 1;
+
+    return RECIPES.map((r) => {
+      const traits = (window.RECIPE_TRAITS && window.RECIPE_TRAITS[r.id]) || [];
+      let score = 0;
+      const matched = [];
+
+      Object.entries(weights).forEach(([key, value]) => {
+        let hit;
+        if (key === 'vegan') hit = r.tags.includes('Vegan');
+        else if (key === 'einfach') hit = r.level === 'Einfach';
+        else if (key === 'mittel') hit = r.level === 'Mittel';
+        else if (key === 'aufwendig') hit = r.level === 'Anspruchsvoll';
+        else if (key === 'schnell') hit = totalTime(r) <= 35;
+        else if (key === 'mittelzeit') hit = totalTime(r) <= 75;
+        else if (key === 'nussfrei') hit = !traits.includes('nussig');
+        else if (key === 'schokofrei') hit = !traits.includes('schoko');
+        else hit = traits.includes(key);
+
+        if (hit) {
+          score += value;
+          if (TRAIT_LABELS[key]) matched.push(TRAIT_LABELS[key]);
+        }
+      });
+
+      return { r, score, matched, pct: Math.max(1, Math.min(99, Math.round((score / max) * 100))) };
+    }).sort((a, b) => b.score - a.score || totalTime(a.r) - totalTime(b.r));
+  }
+
+  function hitHTML(match, main) {
+    const r = match.r;
+    return `
+      <button class="hit${main ? ' hit-main' : ''}" type="button" data-id="${esc(r.id)}">
+        <span class="hit-art" style="--tint:${esc(r.tint)}">${cookieArt(r)}</span>
+        <span class="hit-copy">
+          <span class="hit-badge">${main ? 'Beste Passung' : 'Auch passend'} · ${match.pct} %</span>
+          <span class="hit-name">${esc(r.name)}</span>
+          <span class="hit-meta">${r.zeit} Min · ${r.stueck} Stück · ${esc(r.level)}</span>
+          ${main && match.matched.length
+            ? `<span class="hit-why">Passt wegen: ${match.matched.slice(0, 3).map(esc).join(' · ')}</span>`
+            : ''}
+        </span>
+      </button>`;
+  }
+
+  function renderFinderResult() {
+    const ranked = finderMatches();
+    const total = RECIPES.length;
+
+    fEl.result.innerHTML = `
+      <p class="eyebrow"><span></span>Dein Ergebnis</p>
+      <h2 class="finder-q">Das sind deine Plätzchen.</h2>
+      <p class="finder-lede">Aus ${total} Rezepten berechnet. Ein Klick öffnet Zutaten und Anleitung.</p>
+      <div class="hits">
+        ${hitHTML(ranked[0], true)}
+        ${ranked.slice(1, 3).map((m) => hitHTML(m, false)).join('')}
+      </div>
+      <div class="finder-actions">
+        <button class="btn btn-ghost" type="button" id="finderAgain">Nochmal beantworten</button>
+        <a class="btn btn-primary" href="#rezepte">Alle ${total} Rezepte</a>
+      </div>`;
+
+    showFinderPanel('result');
+    fEl.result.querySelector('#finderAgain').addEventListener('click', startFinder);
+    fEl.result.querySelectorAll('.hit').forEach((hit) => {
+      hit.addEventListener('click', () => openRecipe(hit.dataset.id));
+    });
+    const heading = fEl.result.querySelector('h2');
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: true });
+  }
+
+  function startFinder() {
+    finder.step = 0;
+    finder.picks = [];
+    showFinderPanel('quiz');
+    renderQuestion();
+    fEl.question.focus({ preventScroll: true });
+  }
+
+  function backStep() {
+    if (finder.step === 0) {
+      showFinderPanel('intro');
+      return;
+    }
+    finder.step -= 1;
+    finder.picks.length = finder.step;
+    renderQuestion();
+    fEl.question.focus({ preventScroll: true });
+  }
+
+  if (fEl.start) {
+    fEl.question.setAttribute('tabindex', '-1');
+    fEl.start.addEventListener('click', startFinder);
+    fEl.back.addEventListener('click', backStep);
+    fEl.options.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-opt]');
+      if (btn) pickOption(Number(btn.dataset.opt));
+    });
+  }
+
+  /* ---------- Einkaufsliste ---------- */
+  const LIST_KEY = 'kruemel-zimt-einkaufsliste-v1';
+
+  // Reihenfolge = Reihenfolge im Supermarkt. Erster Treffer gewinnt.
+  const LIST_GROUPS = [
+    { title: 'Mehl & Backzutaten', words: ['mehl', 'backpulver', 'speisestärke', 'stärke', 'haferflocken', 'blätterteig', 'grieß', 'hefe'] },
+    { title: 'Zucker & Süßes', words: ['zucker', 'honig', 'sirup', 'marzipan', 'nougat', 'nutella'] },
+    { title: 'Schokolade & Kuvertüre', words: ['schokolade', 'kuvertüre', 'glasur', 'kakao'] },
+    { title: 'Nüsse & Mandeln', words: ['mandel', 'nuss', 'haselnuss', 'walnuss', 'kokos', 'krokant'] },
+    { title: 'Obst & Marmelade', words: ['konfitüre', 'marmelade', 'gelee', 'orange', 'zitrone', 'himbeer', 'johannisbeer', 'kirsche', 'aprikose', 'erdbeer', 'apfel', 'rosine', 'saft'] },
+    { title: 'Fette, Eier & Milch', words: ['butter', 'margarine', 'palmin', 'frischkäse', 'sahne', 'milch', 'drink', 'eigelb', 'eiweiß', 'eier', 'ei'] },
+    { title: 'Gewürze & Aromen', words: ['zimt', 'nelken', 'salz', 'vanille', 'schale', 'abrieb', 'gewürz'] }
+  ];
+
+  const listState = { items: [], done: new Set() };
+
+  function loadList() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LIST_KEY) || '{}');
+      const items = Array.isArray(raw.items) ? raw.items : [];
+      listState.items = items
+        .filter((it) => it && typeof it.id === 'string' && RECIPES.some((r) => r.id === it.id))
+        .map((it) => ({ id: it.id, factor: Number(it.factor) > 0 ? Number(it.factor) : 1 }));
+      listState.done = new Set(Array.isArray(raw.done) ? raw.done.filter((k) => typeof k === 'string') : []);
+    } catch (err) {
+      listState.items = [];
+      listState.done = new Set();
+    }
+  }
+
+  function saveList() {
+    try {
+      localStorage.setItem(LIST_KEY, JSON.stringify({ items: listState.items, done: [...listState.done] }));
+    } catch (err) { /* privater Modus: Liste gilt nur für diese Sitzung */ }
+  }
+
+  // In der Liste zählt die Stückzahl, nicht der Skalierungsfaktor –
+  // der ist beim Ausstecher ohnehin krumm.
+  const piecesLabel = (r, factor) => fmtAmount(Math.max(1, Math.round(r.stueck * factor))) + ' Stück';
+
+  // Umlaute angleichen, sonst findet „Nüsse“ das Stichwort „nuss“ nicht.
+  const norm = (s) => String(s).toLowerCase()
+    .replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss');
+
+  function groupOf(name) {
+    const n = norm(name);
+    for (const group of LIST_GROUPS) {
+      if (group.words.some((w) => n.includes(norm(w)))) return group.title;
+    }
+    return 'Sonstiges';
+  }
+
+  // Gleiche Zutat (Name + Einheit) aus allen Rezepten zusammenzählen.
+  function listEntries() {
+    const map = new Map();
+
+    listState.items.forEach((item) => {
+      const r = RECIPES.find((x) => x.id === item.id);
+      if (!r) return;
+      r.zutaten.forEach((z) => {
+        const key = z.n + '|' + z.u;
+        const amount = (z.m || 0) * item.factor;
+        const prev = map.get(key);
+        if (prev) prev.m += amount;
+        else map.set(key, { key, m: amount, u: z.u, n: z.n });
+      });
+    });
+
+    return [...map.values()].sort((a, b) => a.n.localeCompare(b.n, 'de'));
+  }
+
+  function amountLabel(entry) {
+    let amount = entry.m;
+    let unit = entry.u;
+    if ((unit === 'g' || unit === 'ml') && amount >= 1000) {
+      // Kilo/Liter mit einer Nachkommastelle – Viertel wären hier zu grob.
+      const big = Math.round((amount / 1000) * 10) / 10;
+      return String(big).replace('.', ',') + ' ' + (unit === 'g' ? 'kg' : 'l');
+    }
+    return fmtAmount(amount) + (unit ? ' ' + unit : '');
+  }
+
+  function listMarkup() {
+    const head = (sub) => `
+      <div class="drawer-head list-head">
+        <div class="drawer-top">
+          <p class="eyebrow"><span></span>Einkaufsliste</p>
+          <button class="icon-btn" id="closeList" type="button" aria-label="Einkaufsliste schließen">${icons.close}</button>
+        </div>
+        <h2 id="listTitle">Einkaufsliste</h2>
+        <p class="drawer-lede">${sub}</p>
+      </div>`;
+
+    if (!listState.items.length) {
+      return `<div class="drawer-scroll list-scroll">
+        ${head('Noch ist sie leer.')}
+        <div class="drawer-body">
+          <p class="list-empty">Öffne ein Rezept und tippe auf <strong>Auf die Einkaufsliste</strong> — die Zutaten werden dann für dich zusammengerechnet, auch über mehrere Rezepte hinweg.</p>
+          <a class="btn btn-ghost" href="#rezepte">Rezepte ansehen</a>
+        </div>
+      </div>`;
+    }
+
+    const recipes = listState.items.map((item) => {
+      const r = RECIPES.find((x) => x.id === item.id);
+      return `<button class="list-chip" type="button" data-remove="${esc(r.id)}" aria-label="${esc(r.name)} von der Liste nehmen">
+        <span>${esc(r.name)}</span><b>${piecesLabel(r, item.factor)}</b>${icons.close}
+      </button>`;
+    }).join('');
+
+    const entries = listEntries();
+    const groups = new Map();
+    entries.forEach((entry) => {
+      const title = groupOf(entry.n);
+      if (!groups.has(title)) groups.set(title, []);
+      groups.get(title).push(entry);
+    });
+
+    const order = LIST_GROUPS.map((g) => g.title).concat('Sonstiges');
+    const groupHTML = order.filter((title) => groups.has(title)).map((title) => `
+      <section class="list-group">
+        <h3>${esc(title)}</h3>
+        <ul class="list-items">
+          ${groups.get(title).map((entry) => {
+            const done = listState.done.has(entry.key);
+            return `<li class="${done ? 'done' : ''}">
+              <button class="tick" type="button" data-key="${esc(entry.key)}" aria-pressed="${done}"
+                aria-label="${esc(entry.n)} abhaken">${icons.check}</button>
+              <span><span class="amount"><b>${amountLabel(entry)}</b></span> <span class="iname">${esc(entry.n)}</span></span>
+            </li>`;
+          }).join('')}
+        </ul>
+      </section>`).join('');
+
+    return `<div class="drawer-scroll list-scroll">
+      ${head(`${listState.items.length} ${listState.items.length === 1 ? 'Rezept' : 'Rezepte'}, ${entries.length} Zutaten — zusammengerechnet.`)}
+      <div class="drawer-body">
+        <div class="list-recipes">${recipes}</div>
+        ${groupHTML}
+        <div class="list-actions">
+          <button class="btn btn-primary" type="button" id="printList">${icons.print}Liste drucken</button>
+          <button class="btn btn-ghost" type="button" id="clearList">Liste leeren</button>
+        </div>
+        <p class="hint">Mengen sind auf ¼ gerundet und auf der Liste zusammengefasst. Abgehakte Zutaten bleiben gespeichert.</p>
+      </div>
+    </div>`;
+  }
+
+  function renderList() {
+    const count = listState.items.length;
+    if (el.listCount) {
+      el.listCount.textContent = String(count);
+      el.listCount.hidden = count === 0;
+    }
+    if (el.listToggle) {
+      el.listToggle.setAttribute('aria-label', count
+        ? `Einkaufsliste mit ${count} ${count === 1 ? 'Rezept' : 'Rezepten'} öffnen`
+        : 'Einkaufsliste öffnen');
+    }
+    if (el.listPanel && el.listPanel.classList.contains('open')) el.listPanel.innerHTML = listMarkup();
+  }
+
+  function openList() {
+    if (!el.listPanel) return;
+    if (state.open) closeRecipe();
+    el.listPanel.innerHTML = listMarkup();
+    el.listPanel.classList.add('open');
+    el.listPanel.setAttribute('aria-hidden', 'false');
+    el.listBackdrop.hidden = false;
+    requestAnimationFrame(() => el.listBackdrop.classList.add('show'));
+    el.body.classList.add('locked');
+    const closeBtn = el.listPanel.querySelector('#closeList');
+    if (closeBtn) closeBtn.focus({ preventScroll: true });
+  }
+
+  function closeList() {
+    if (!el.listPanel || !el.listPanel.classList.contains('open')) return;
+    el.listPanel.classList.remove('open');
+    el.listPanel.setAttribute('aria-hidden', 'true');
+    el.listBackdrop.classList.remove('show');
+    if (!state.open) el.body.classList.remove('locked');
+    window.setTimeout(() => {
+      if (!el.listPanel.classList.contains('open')) el.listBackdrop.hidden = true;
+    }, 300);
+  }
+
+  function addToList() {
+    const r = state.open;
+    if (!r) return;
+    const factor = Math.round((pieces(r) / r.stueck) * 100) / 100;
+    const existing = listState.items.find((it) => it.id === r.id);
+    if (existing) existing.factor = factor;
+    else listState.items.push({ id: r.id, factor });
+    saveList();
+    renderList();
+
+    const btn = el.drawer.querySelector('#addToList');
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.innerHTML = `${icons.check}Auf der Liste (${piecesLabel(r, factor)})`;
+    btn.classList.add('is-added');
+    window.clearTimeout(addToList.timer);
+    addToList.timer = window.setTimeout(() => {
+      btn.innerHTML = original;
+      btn.classList.remove('is-added');
+    }, 2400);
+  }
+
+  function printList() {
+    el.body.classList.add('print-list');
+    window.print();
+    window.setTimeout(() => el.body.classList.remove('print-list'), 600);
+  }
+
+  if (el.listToggle) {
+    loadList();
+    renderList();
+
+    el.listToggle.addEventListener('click', openList);
+    el.listBackdrop.addEventListener('click', closeList);
+
+    el.listPanel.addEventListener('click', (e) => {
+      const remove = e.target.closest('[data-remove]');
+      if (remove) {
+        listState.items = listState.items.filter((it) => it.id !== remove.dataset.remove);
+        saveList();
+        renderList();
+        return;
+      }
+
+      const tick = e.target.closest('.tick');
+      if (tick) {
+        const key = tick.dataset.key;
+        if (listState.done.has(key)) listState.done.delete(key);
+        else listState.done.add(key);
+        saveList();
+        renderList();
+        return;
+      }
+
+      if (e.target.closest('#closeList')) { closeList(); return; }
+      if (e.target.closest('#printList')) { printList(); return; }
+      if (e.target.closest('#clearList')) {
+        listState.items = [];
+        listState.done = new Set();
+        saveList();
+        renderList();
+        return;
+      }
+      if (e.target.closest('a[href^="#"]')) closeList();
+    });
+  }
+
+  /* ---------- Events ---------- */
+  el.search.addEventListener('input', () => {
+    state.query = el.search.value;
+    renderGrid();
+  });
+
+  el.chips.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    state.tag = chip.dataset.tag;
+    el.chips.querySelectorAll('.chip').forEach((c) => {
+      c.setAttribute('aria-pressed', String(c === chip));
+    });
+    renderGrid();
+  });
+
+  el.sort.addEventListener('change', () => {
+    state.sort = el.sort.value;
+    renderGrid();
+  });
+
+  el.reset.addEventListener('click', () => {
+    state.tag = 'Alle';
+    state.query = '';
+    el.search.value = '';
+    el.chips.querySelectorAll('.chip').forEach((c) => {
+      c.setAttribute('aria-pressed', String(c.dataset.tag === 'Alle'));
+    });
+    renderGrid();
+    el.search.focus();
+  });
+
+  el.grid.addEventListener('click', (e) => {
+    const card = e.target.closest('.card');
+    if (card) openRecipe(card.dataset.id);
+  });
+
+  el.grid.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.card');
+    if (!card) return;
+    e.preventDefault();
+    openRecipe(card.dataset.id);
+  });
+
+  el.backdrop.addEventListener('click', closeRecipe);
+
+  el.drawer.addEventListener('click', (e) => {
+    const scaleBtn = e.target.closest('[data-scale]');
+    if (scaleBtn) {
+      state.scale = Number(scaleBtn.dataset.scale);
+      refreshIngredients();
+      return;
+    }
+
+    const stepBtn = e.target.closest('[data-step]');
+    if (stepBtn) {
+      stepPieces(Number(stepBtn.dataset.step));
+      return;
+    }
+
+    const tick = e.target.closest('.tick');
+    if (tick) {
+      toggleItem('z', Number(tick.dataset.index), tick);
+      return;
+    }
+
+    const step = e.target.closest('.schritte li');
+    if (step) {
+      toggleItem('s', Number(step.dataset.index), step);
+      return;
+    }
+
+    if (e.target.closest('#addToList')) {
+      addToList();
+      return;
+    }
+
+    if (e.target.closest('#closeDrawer') || e.target.closest('#closeDrawerBottom')) closeRecipe();
+    if (e.target.closest('#printBtn')) window.print();
+  });
+
+  el.drawer.addEventListener('input', (e) => {
+    if (e.target.id !== 'cutterRange') return;
+    state.cutter = Number(e.target.value);
+    updateCounts();
+  });
+
+  el.drawer.addEventListener('keydown', (e) => {
+    const step = e.target.closest('.schritte li');
+    if (step && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      toggleItem('s', Number(step.dataset.index), step);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeList();
+      closeRecipe();
+    }
+    if (e.key === '/' && state.open === null && document.activeElement !== el.search) {
+      e.preventDefault();
+      el.search.focus();
+    }
+  });
+
+  window.addEventListener('hashchange', () => {
+    if (!location.hash.startsWith('#rezept/')) closeRecipe();
+  });
+
+  /* ---------- Start ---------- */
+  function renderHeroArt() {
+    if (!el.heroArt) return;
+    const featured = [
+      RECIPES.find((r) => r.id === 'zimtsterne'),
+      RECIPES.find((r) => r.id === 'lebkuchenherzen'),
+      RECIPES.find((r) => r.id === 'vanillekipferl')
+    ].filter(Boolean);
+    el.heroArt.innerHTML = featured.map((r, i) =>
+      `<div class="tile t${i + 1}" style="--tint:${esc(r.tint)}">${cookieArt(r)}</div>`
+    ).join('');
+  }
+
+  renderChips();
+  renderGrid();
+  renderHeroArt();
+
+  const initial = location.hash.match(/^#rezept\/(.+)$/);
+  if (initial) openRecipe(decodeURIComponent(initial[1]), false);
+})();
