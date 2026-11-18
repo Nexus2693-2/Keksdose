@@ -29,6 +29,7 @@
       <nav class="site-nav" aria-label="Hauptnavigation">
         <a href="#finder">Finder</a>
         <a href="#rezepte">Rezepte</a>
+        <a href="#backplan">Backplan</a>
         <a href="#tipps">Backtipps</a>
         <span class="nav-badge">35 Rezepte</span>
         <button class="list-btn" type="button" id="listToggle">
@@ -100,6 +101,10 @@
           <input id="searchInput" type="search" placeholder="Suchen: Zimt, Mandeln, Schokolade …" aria-label="Rezepte durchsuchen" autocomplete="off">
         </div>
         <div class="chips" id="filterChips" role="group" aria-label="Nach Kategorie filtern"></div>
+        <button class="list-btn pantry-btn" type="button" id="pantryToggle" aria-label="Was hab ich da? Vorrat prüfen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.2"/><path d="M4 10.5h16M4 15.5h16"/></svg>
+          <span>Was hab ich da?</span>
+        </button>
         <label class="sort">
           <span>Sortieren</span>
           <select id="sortSelect">
@@ -120,6 +125,39 @@
           <a class="btn btn-primary" href="#finder">Plätzchen-Finder starten</a>
         </div>
       </div>
+    </section>
+
+    <section id="backplan" class="wrap plan" aria-labelledby="planTitle">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span></span>Mehrere Sorten, ein Nachmittag</p>
+          <h2 id="planTitle">Backplan</h2>
+          <p class="section-lede">
+            Wähle zwei, drei oder mehr Rezepte — der Plan sagt dir, welcher Teig zuerst gerührt wird,
+            was kühlen muss und wann welches Blech in den Ofen kommt.
+          </p>
+        </div>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-picker">
+          <div class="plan-picker-head">
+            <h3>Deine Auswahl</h3>
+            <span class="plan-count" id="planCount">noch nichts gewählt</span>
+          </div>
+          <div class="search plan-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+            <input id="planSearch" type="search" placeholder="Rezept suchen …" aria-label="Rezepte für den Backplan durchsuchen" autocomplete="off">
+          </div>
+          <div class="plan-options" id="planOptions" role="group" aria-label="Rezepte für den Backplan auswählen"></div>
+          <div class="plan-picker-foot">
+            <label class="plan-start">Start <input type="time" id="planStart" value="14:00"></label>
+            <button class="plan-clear" id="planClear" type="button">Auswahl leeren</button>
+          </div>
+        </div>
+        <div class="plan-output" id="planOutput" aria-live="polite"></div>
+      </div>
+      <p class="plan-note">Arbeitszeiten sind geschätzt, die Backzeiten kommen aus den Rezeptangaben. Der Plan rechnet mit einem Ofen und einem Blech nach dem anderen.</p>
     </section>
 
     <section id="tipps" class="wrap tips" aria-labelledby="tipsTitle">
@@ -246,6 +284,9 @@
 
   <div class="backdrop" id="listBackdrop" hidden></div>
   <aside class="drawer list-drawer" id="listPanel" role="dialog" aria-modal="true" aria-labelledby="listTitle" aria-hidden="true"></aside>
+
+  <div class="backdrop" id="pantryBackdrop" hidden></div>
+  <aside class="drawer list-drawer pantry-drawer" id="pantryPanel" role="dialog" aria-modal="true" aria-labelledby="pantryTitle" aria-hidden="true"></aside>
 
   <script src="recipes.js" defer></script>
   <script src="app.js" defer></script>

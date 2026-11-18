@@ -1,0 +1,11 @@
+# Keksdose – statische Seite, kein Build-Schritt nötig.
+# Netlify veröffentlicht einfach den Inhalt von public/.
+
+[build]
+  command = ""
+  publish = "public"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

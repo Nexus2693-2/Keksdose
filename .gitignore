@@ -1,0 +1,7 @@
+node_modules/
+.netlify/
+.wrangler/
+artifacts/
+NETLIFY_AUTH_TOKEN
+*.log
+*.pid

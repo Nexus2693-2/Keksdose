@@ -1069,6 +1069,511 @@
     });
   }
 
+  /* ---------- Backplan ---------- */
+  const PLAN_KEY = 'keksdose-backplan-v1';
+
+  const plan = { ids: [], start: '14:00', query: '' };
+
+  const pEl = {
+    options: document.getElementById('planOptions'),
+    output: document.getElementById('planOutput'),
+    search: document.getElementById('planSearch'),
+    start: document.getElementById('planStart'),
+    count: document.getElementById('planCount'),
+    clear: document.getElementById('planClear')
+  };
+
+  function loadPlan() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+      if (Array.isArray(raw.ids)) plan.ids = raw.ids.filter((id) => RECIPES.some((r) => r.id === id));
+      if (typeof raw.start === 'string' && /^\d{2}:\d{2}$/.test(raw.start)) plan.start = raw.start;
+    } catch (err) { /* ohne Speicher startet der Plan leer */ }
+  }
+
+  function savePlan() {
+    try { localStorage.setItem(PLAN_KEY, JSON.stringify({ ids: plan.ids, start: plan.start })); } catch (err) { /* Sitzung genügt */ }
+  }
+
+  const clock = (mins) => {
+    const m = ((Math.round(mins) % 1440) + 1440) % 1440;
+    return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  };
+
+  function startMinutes() {
+    const [h, m] = plan.start.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
+
+  const durationLabel = (mins) => {
+    const h = Math.floor(mins / 60);
+    const rest = mins % 60;
+    if (!h) return `${rest} Min`;
+    return `${h} Std${rest ? ' ' + rest + ' Min' : ''}`;
+  };
+
+  // Die Rezeptzeit umfasst Rühren und Backen. Für den Plan teilen wir sie auf:
+  // geknetet wird meist länger als gebacken.
+  function phaseTimes(r) {
+    const base = r.level === 'Einfach' ? 15 : r.level === 'Mittel' ? 20 : 28;
+    const prep = Math.max(10, Math.min(base, Math.round(r.zeit * 0.6)));
+    return { prep, bake: Math.max(6, r.zeit - prep), chill: r.kuehl || 0 };
+  }
+
+  // Ein Ofen, ein Blech: erst alle Teige anrühren (was lange kühlen muss zuerst),
+  // dann der Reihe nach backen, sobald Teig und Kühlzeit fertig sind.
+  function planSchedule(ids) {
+    const items = ids
+      .map((id) => {
+        const r = RECIPES.find((x) => x.id === id);
+        return r ? { r, ...phaseTimes(r) } : null;
+      })
+      .filter(Boolean);
+    if (!items.length) return null;
+
+    let t = startMinutes();
+    const events = [];
+
+    [...items].sort((a, b) => b.chill - a.chill || b.prep - a.prep).forEach((item) => {
+      events.push({ at: t, order: 0, type: 'prep', item, dur: item.prep });
+      t += item.prep;
+      item.ready = t + item.chill;
+      if (item.chill) events.push({ at: t, order: 1, type: 'chill', item, dur: item.chill });
+    });
+
+    const firstReady = Math.min(...items.map((i) => i.ready));
+    const preheat = Math.max(t, firstReady - 10);
+    events.push({ at: preheat, order: 0, type: 'oven', dur: 10 });
+
+    // Der Ofen heizt leer vor – erst danach darf das erste Blech hinein.
+    let oven = preheat + 10;
+    [...items].sort((a, b) => a.ready - b.ready).forEach((item) => {
+      const at = Math.max(oven, item.ready);
+      events.push({ at, order: 2, type: 'bake', item, dur: item.bake });
+      oven = at + item.bake;
+    });
+
+    events.sort((a, b) => a.at - b.at || a.order - b.order);
+
+    return {
+      events,
+      end: oven,
+      pieces: items.reduce((sum, i) => sum + i.r.stueck, 0),
+      count: items.length
+    };
+  }
+
+  const PLAN_STEP = {
+    prep: {
+      title: (event) => `${event.item.r.name} anrühren`,
+      detail: (event) => `ca. ${event.dur} Min · ${event.item.r.stueck} Stück`
+    },
+    chill: {
+      title: (event) => `${event.item.r.name} kühlen`,
+      detail: (event) => `${event.dur} Min · läuft nebenher`
+    },
+    oven: {
+      title: () => 'Ofen vorheizen',
+      detail: () => 'Ober-/Unterhitze · ca. 10 Min'
+    },
+    bake: {
+      title: (event) => `${event.item.r.name} backen`,
+      detail: (event) => `ca. ${event.dur} Min · ${event.item.r.stueck} Stück`
+    }
+  };
+
+  function planStepHTML(event) {
+    const copy = PLAN_STEP[event.type];
+    return `<li class="plan-step plan-${event.type}">
+      <span class="plan-time">${clock(event.at)}</span>
+      <span class="plan-node" aria-hidden="true"></span>
+      <span class="plan-copy">
+        <b>${esc(copy.title(event))}</b>
+        <small>${esc(copy.detail(event))}</small>
+      </span>
+    </li>`;
+  }
+
+  function updatePlanCount() {
+    if (!pEl.count) return;
+    const n = plan.ids.length;
+    pEl.count.textContent = n
+      ? `${n} ${n === 1 ? 'Rezept' : 'Rezepte'} gewählt`
+      : 'noch nichts gewählt';
+  }
+
+  function renderPlanOptions() {
+    if (!pEl.options) return;
+    const q = plan.query.trim().toLowerCase();
+    const list = RECIPES.filter((r) => !q || `${r.name} ${r.tags.join(' ')}`.toLowerCase().includes(q));
+
+    pEl.options.innerHTML = list.length
+      ? list.map((r) => {
+        const times = phaseTimes(r);
+        const bits = [`${r.zeit} Min`, `${r.stueck} Stück`, r.level];
+        if (times.chill) bits.push(`+${times.chill} Min kühlen`);
+        return `<label class="plan-option">
+          <input type="checkbox" data-plan-id="${esc(r.id)}"${plan.ids.includes(r.id) ? ' checked' : ''}>
+          <span class="plan-dot" style="background:${esc(r.dough)}" aria-hidden="true"></span>
+          <span class="plan-option-copy"><b>${esc(r.name)}</b><small>${bits.map(esc).join(' · ')}</small></span>
+        </label>`;
+      }).join('')
+      : '<p class="plan-none">Kein Rezept gefunden.</p>';
+
+    updatePlanCount();
+  }
+
+  function renderPlan() {
+    if (!pEl.output) return;
+    const schedule = planSchedule(plan.ids);
+
+    if (!schedule) {
+      pEl.output.innerHTML = `
+        <div class="plan-empty">
+          <h3>Noch kein Rezept gewählt</h3>
+          <p>Wähle links aus, was du backen willst. Der Plan sagt dir dann, welcher Teig zuerst gerührt wird, was kühlen muss und wann welches Blech in den Ofen kommt.</p>
+          <p class="plan-empty-hint">Beginne mit dem Rezept, das am längsten kühlen muss — in der Kühlzeit sind die anderen Teige schon gerührt.</p>
+        </div>`;
+      return;
+    }
+
+    const total = schedule.end - startMinutes();
+    pEl.output.innerHTML = `
+      <div class="plan-summary">
+        <div>
+          <p class="eyebrow"><span></span>Dein Nachmittag</p>
+          <p class="plan-finish">Fertig um <strong>${clock(schedule.end)}</strong></p>
+          <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${durationLabel(total)} inklusive Kühlzeit</p>
+        </div>
+        <button class="btn btn-primary" type="button" id="planToList">Alles auf die Einkaufsliste</button>
+      </div>
+      ${total > 300 ? '<p class="plan-warn">Das sind mehr als fünf Stunden Backen. Für einen Nachmittag passen besser zwei bis vier Rezepte — oder du teilst den Plan auf zwei Tage.</p>' : ''}
+      <ol class="plan-steps">${schedule.events.map(planStepHTML).join('')}</ol>`;
+  }
+
+  if (pEl.options) {
+    pEl.search.addEventListener('input', () => {
+      plan.query = pEl.search.value;
+      renderPlanOptions();
+    });
+
+    pEl.options.addEventListener('change', (e) => {
+      const box = e.target.closest('[data-plan-id]');
+      if (!box) return;
+      const id = box.dataset.planId;
+      if (box.checked) {
+        if (!plan.ids.includes(id)) plan.ids.push(id);
+      } else {
+        plan.ids = plan.ids.filter((x) => x !== id);
+      }
+      savePlan();
+      updatePlanCount();
+      renderPlan();
+    });
+
+    pEl.start.addEventListener('change', () => {
+      if (!/^\d{2}:\d{2}$/.test(pEl.start.value)) return;
+      plan.start = pEl.start.value;
+      savePlan();
+      renderPlan();
+    });
+
+    pEl.clear.addEventListener('click', () => {
+      plan.ids = [];
+      savePlan();
+      renderPlanOptions();
+      renderPlan();
+    });
+
+    pEl.output.addEventListener('click', (e) => {
+      const btn = e.target.closest('#planToList');
+      if (!btn) return;
+      plan.ids.forEach((id) => {
+        if (!listState.items.some((it) => it.id === id)) listState.items.push({ id, factor: 1 });
+      });
+      saveList();
+      renderList();
+      btn.textContent = 'Auf der Einkaufsliste';
+      btn.classList.add('is-added');
+      btn.disabled = true;
+    });
+  }
+
+  /* ---------- Was hab ich da? (Vorrat) ---------- */
+  const PANTRY_KEY = 'keksdose-vorrat-v1';
+
+  // Reihenfolge ist wichtig: konkrete Zutaten vor ihren Oberbegriffen
+  // (Mandelglasur vor Mandeln, Kuvertüre vor Schokolade usw.).
+  const PANTRY_RULES = [
+    { key: 'haselnussglasur', label: 'Haselnussglasur', test: /haselnussglasur/ },
+    { key: 'mandelglasur', label: 'Mandelglasur', test: /mandelglasur/ },
+    { key: 'schokolade', label: 'Schokolade & Kuvertüre', test: /schokoglasur|schokoladenglasur|kuverture|schokolade/ },
+    { key: 'krokant', label: 'Krokant', test: /krokant/ },
+    { key: 'kakao', label: 'Kakao', test: /kakao/ },
+    { key: 'kokosoel', label: 'Kokosöl', test: /kokosol|kokosoel/ },
+    { key: 'kokos', label: 'Kokosraspeln', test: /kokos/ },
+    { key: 'mandeln', label: 'Mandeln', test: /mandel/ },
+    { key: 'haselnuesse', label: 'Haselnüsse', test: /haselnuss/ },
+    { key: 'walnuesse', label: 'Walnüsse', test: /walnuss/ },
+    { key: 'nuesse', label: 'Nüsse (gemischt)', test: /nuss/ },
+    { key: 'marzipan', label: 'Marzipan', test: /marzipan/ },
+    { key: 'nutella', label: 'Nuss-Nougat-Creme', test: /nutella/ },
+    { key: 'konfiture', label: 'Konfitüre & Marmelade', test: /konfiture|marmelade|gelee/ },
+    { key: 'himbeersaft', label: 'Himbeersaft', test: /himbeersaft/ },
+    { key: 'himbeersirup', label: 'Himbeersirup', test: /himbeersirup/ },
+    { key: 'kirschsaft', label: 'Kirschsaft', test: /kirschsaft/ },
+    { key: 'kirschwasser', label: 'Kirschwasser', test: /kirschwasser/ },
+    { key: 'limettensaft', label: 'Limettensaft', test: /limettensaft/ },
+    { key: 'orange', label: 'Orangen (Saft & Schale)', test: /orange/ },
+    { key: 'zitrone', label: 'Zitrone', test: /zitrone/ },
+    { key: 'zimt', label: 'Zimt', test: /zimt/ },
+    { key: 'nelken', label: 'Nelken', test: /nelken/ },
+    { key: 'lebkuchengewuerz', label: 'Lebkuchengewürz', test: /lebkuchen/ },
+    { key: 'vanilleextrakt', label: 'Vanilleextrakt', test: /vanilleextrakt/ },
+    { key: 'vanillezucker', label: 'Vanillezucker', test: /vanillezucker|vanillinzucker/ },
+    { key: 'puderzucker', label: 'Puderzucker', test: /puderzucker/ },
+    { key: 'brauner_zucker', label: 'Brauner Zucker', test: /brauner zucker/ },
+    { key: 'zucker', label: 'Zucker', test: /zucker/ },
+    { key: 'honig', label: 'Honig', test: /honig/ },
+    { key: 'ahornsirup', label: 'Ahornsirup', test: /ahornsirup/ },
+    { key: 'mehl', label: 'Mehl', test: /mehl/ },
+    { key: 'backpulver', label: 'Backpulver', test: /backpulver/ },
+    { key: 'speisestaerke', label: 'Speisestärke', test: /speisestarke/ },
+    { key: 'haferflocken', label: 'Haferflocken', test: /haferflocken/ },
+    { key: 'blaetterteig', label: 'Blätterteig', test: /blatterteig/ },
+    { key: 'eier', label: 'Eier', test: /\bei(er|gelb|weiss)?\b/ },
+    { key: 'butter', label: 'Butter', test: /butter/ },
+    { key: 'margarine', label: 'Margarine', test: /margarine/ },
+    { key: 'palmin', label: 'Palmin', test: /palmin/ },
+    { key: 'sahne', label: 'Sahne', test: /sahne/ },
+    { key: 'milch', label: 'Milch', test: /milch/ },
+    { key: 'haferdrink', label: 'Haferdrink', test: /haferdrink/ },
+    { key: 'frischkaese', label: 'Frischkäse', test: /frischkase/ },
+    { key: 'salz', label: 'Salz', test: /salz/ },
+    { key: 'rosinen', label: 'Rosinen', test: /rosine/ },
+    { key: 'schwarztee', label: 'Schwarztee', test: /schwarztee/ }
+  ];
+
+  const PANTRY_LABELS = Object.fromEntries(PANTRY_RULES.map((rule) => [rule.key, rule.label]));
+  // Butter und Margarine ersetzen sich beim Backen gegenseitig.
+  const PANTRY_ALIASES = { butter: ['margarine', 'palmin'], margarine: ['butter'] };
+
+  function pantryKey(name) {
+    const n = norm(name);
+    const rule = PANTRY_RULES.find((r) => r.test.test(n));
+    if (rule) return rule.key;
+    return String(name).split(',')[0].trim().toLowerCase().replace(/\s+/g, '-');
+  }
+
+  const pantryLabel = (key) => PANTRY_LABELS[key] || key.replace(/-/g, ' ');
+
+  const pantry = { keys: new Set(), query: '', expanded: false };
+  const pantryEl = {
+    toggle: document.getElementById('pantryToggle'),
+    panel: document.getElementById('pantryPanel'),
+    backdrop: document.getElementById('pantryBackdrop')
+  };
+
+  function loadPantry() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PANTRY_KEY) || '[]');
+      pantry.keys = new Set(Array.isArray(raw) ? raw.filter((k) => typeof k === 'string') : []);
+    } catch (err) { pantry.keys = new Set(); }
+  }
+
+  function savePantry() {
+    try { localStorage.setItem(PANTRY_KEY, JSON.stringify([...pantry.keys])); } catch (err) { /* Sitzung genügt */ }
+  }
+
+  function hasPantry(key) {
+    if (pantry.keys.has(key)) return true;
+    return (PANTRY_ALIASES[key] || []).some((alias) => pantry.keys.has(alias));
+  }
+
+  function pantryMatches() {
+    return RECIPES.map((r) => {
+      const keys = [...new Set(r.zutaten.map((z) => pantryKey(z.n)))];
+      const missing = keys.filter((k) => !hasPantry(k));
+      return { r, missing, total: keys.length };
+    }).sort((a, b) => a.missing.length - b.missing.length
+      || a.r.zeit - b.r.zeit
+      || a.r.name.localeCompare(b.r.name, 'de'));
+  }
+
+  function pantryShell() {
+    return `<div class="drawer-scroll list-scroll">
+      <div class="drawer-head list-head">
+        <div class="drawer-top">
+          <p class="eyebrow"><span></span>Vorratscheck</p>
+          <button class="icon-btn" id="closePantry" type="button" aria-label="Vorratscheck schließen">${icons.close}</button>
+        </div>
+        <h2 id="pantryTitle">Was hab ich da?</h2>
+        <p class="drawer-lede">Hake ab, was im Schrank steht. Wir zeigen dir, welche Rezepte damit gehen — und was noch fehlt.</p>
+      </div>
+      <div class="drawer-body">
+        <div class="search pantry-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+          <input id="pantrySearch" type="search" placeholder="Zutat suchen: Mehl, Zimt …" aria-label="Zutaten durchsuchen" autocomplete="off" value="${esc(pantry.query)}">
+        </div>
+        <div class="pantry-picked" id="pantryPicked"></div>
+        <div class="pantry-grid" id="pantryGrid"></div>
+        <div class="pantry-results" id="pantryResults" aria-live="polite"></div>
+      </div>
+    </div>`;
+  }
+
+  function renderPantryGrid() {
+    const grid = pantryEl.panel.querySelector('#pantryGrid');
+    if (!grid) return;
+    const q = norm(pantry.query.trim());
+    const list = PANTRY_RULES.filter((rule) => !q || norm(rule.label).includes(q));
+    grid.innerHTML = list.length
+      ? list.map((rule) => `<label class="pantry-item">
+        <input type="checkbox" data-pantry-key="${esc(rule.key)}"${pantry.keys.has(rule.key) ? ' checked' : ''}>
+        <span>${esc(rule.label)}</span>
+      </label>`).join('')
+      : '<p class="pantry-none">Diese Zutat kennen wir nicht — vielleicht anders schreiben?</p>';
+  }
+
+  function renderPantryPicked() {
+    const box = pantryEl.panel.querySelector('#pantryPicked');
+    if (!box) return;
+    if (!pantry.keys.size) {
+      box.innerHTML = '<p class="hint">Noch nichts angehakt. Schon Mehl, Butter, Zucker und Eier reichen für die ersten Rezepte.</p>';
+      return;
+    }
+    const chips = [...pantry.keys].map((key) => `<button class="pantry-chip" type="button" data-pantry-remove="${esc(key)}" aria-label="${esc(pantryLabel(key))} entfernen">
+      <span>${esc(pantryLabel(key))}</span>${icons.close}
+    </button>`).join('');
+    box.innerHTML = `
+      <div class="pantry-picked-head">
+        <b>${pantry.keys.size} ${pantry.keys.size === 1 ? 'Zutat' : 'Zutaten'} im Vorrat</b>
+        <button class="plan-clear" id="pantryReset" type="button">alles löschen</button>
+      </div>
+      <div class="pantry-chips">${chips}</div>`;
+  }
+
+  function pantryHitHTML(match) {
+    const missing = match.missing;
+    return `<button class="pantry-hit" type="button" data-id="${esc(match.r.id)}">
+      <span class="pantry-hit-main">
+        <b>${esc(match.r.name)}</b>
+        <small>${match.r.zeit} Min · ${match.r.stueck} Stück · ${esc(match.r.level)}</small>
+      </span>
+      <span class="pantry-hit-status${missing.length ? '' : ' is-ready'}">${missing.length
+        ? 'fehlt: ' + missing.slice(0, 3).map((k) => esc(pantryLabel(k))).join(', ') + (missing.length > 3 ? ' …' : '')
+        : 'alles da'}</span>
+    </button>`;
+  }
+
+  function renderPantryResults() {
+    const box = pantryEl.panel.querySelector('#pantryResults');
+    if (!box) return;
+
+    if (!pantry.keys.size) {
+      box.innerHTML = '<p class="pantry-teaser">Hake ein paar Grundzutaten an, dann erscheint hier, was du damit backen kannst.</p>';
+      return;
+    }
+
+    const matches = pantryMatches();
+    const ready = matches.filter((m) => !m.missing.length);
+    const limit = pantry.expanded ? matches.length : 7;
+
+    box.innerHTML = `
+      <div class="pantry-result-head">
+        <h3>Das geht damit</h3>
+        <span>${ready.length} von ${RECIPES.length} Rezepten ohne Einkauf</span>
+      </div>
+      <div class="pantry-hits">${matches.slice(0, limit).map(pantryHitHTML).join('')}</div>
+      ${matches.length > 7 ? `<button class="pantry-more" id="pantryMore" type="button">${pantry.expanded ? 'weniger anzeigen' : `alle ${matches.length} Rezepte anzeigen`}</button>` : ''}`;
+  }
+
+  function openPantry() {
+    if (!pantryEl.panel) return;
+    if (state.open) closeRecipe();
+    if (el.listPanel && el.listPanel.classList.contains('open')) closeList();
+    pantryEl.panel.innerHTML = pantryShell();
+    pantryEl.panel.classList.add('open');
+    pantryEl.panel.setAttribute('aria-hidden', 'false');
+    pantryEl.backdrop.hidden = false;
+    requestAnimationFrame(() => pantryEl.backdrop.classList.add('show'));
+    el.body.classList.add('locked');
+
+    renderPantryGrid();
+    renderPantryPicked();
+    renderPantryResults();
+
+    const closeBtn = pantryEl.panel.querySelector('#closePantry');
+    if (closeBtn) closeBtn.focus({ preventScroll: true });
+  }
+
+  function closePantry() {
+    if (!pantryEl.panel || !pantryEl.panel.classList.contains('open')) return;
+    pantryEl.panel.classList.remove('open');
+    pantryEl.panel.setAttribute('aria-hidden', 'true');
+    pantryEl.backdrop.classList.remove('show');
+    if (!state.open) el.body.classList.remove('locked');
+    window.setTimeout(() => {
+      if (!pantryEl.panel.classList.contains('open')) pantryEl.backdrop.hidden = true;
+    }, 300);
+  }
+
+  if (pantryEl.toggle) {
+    pantryEl.toggle.addEventListener('click', openPantry);
+    pantryEl.backdrop.addEventListener('click', closePantry);
+
+    pantryEl.panel.addEventListener('change', (e) => {
+      const box = e.target.closest('[data-pantry-key]');
+      if (!box) return;
+      if (box.checked) pantry.keys.add(box.dataset.pantryKey);
+      else pantry.keys.delete(box.dataset.pantryKey);
+      savePantry();
+      renderPantryPicked();
+      renderPantryResults();
+    });
+
+    pantryEl.panel.addEventListener('input', (e) => {
+      if (e.target.id !== 'pantrySearch') return;
+      pantry.query = e.target.value;
+      renderPantryGrid();
+    });
+
+    pantryEl.panel.addEventListener('click', (e) => {
+      if (e.target.closest('#closePantry')) { closePantry(); return; }
+
+      if (e.target.closest('#pantryReset')) {
+        pantry.keys.clear();
+        savePantry();
+        renderPantryGrid();
+        renderPantryPicked();
+        renderPantryResults();
+        return;
+      }
+
+      const remove = e.target.closest('[data-pantry-remove]');
+      if (remove) {
+        pantry.keys.delete(remove.dataset.pantryRemove);
+        savePantry();
+        renderPantryGrid();
+        renderPantryPicked();
+        renderPantryResults();
+        return;
+      }
+
+      if (e.target.closest('#pantryMore')) {
+        pantry.expanded = !pantry.expanded;
+        renderPantryResults();
+        return;
+      }
+
+      const hit = e.target.closest('.pantry-hit');
+      if (hit) {
+        closePantry();
+        openRecipe(hit.dataset.id);
+      }
+    });
+  }
+
   /* ---------- Events ---------- */
   el.search.addEventListener('input', () => {
     state.query = el.search.value;
@@ -1167,6 +1672,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      closePantry();
       closeList();
       closeRecipe();
     }
@@ -1196,6 +1702,13 @@
   renderChips();
   renderGrid();
   renderHeroArt();
+
+  loadPlan();
+  if (pEl.start) pEl.start.value = plan.start;
+  renderPlanOptions();
+  renderPlan();
+
+  loadPantry();
 
   const initial = location.hash.match(/^#rezept\/(.+)$/);
   if (initial) openRecipe(decodeURIComponent(initial[1]), false);
