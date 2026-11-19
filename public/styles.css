@@ -1387,6 +1387,27 @@ a { color: inherit; }
 .plan-actions .btn-primary { font-size: 13.5px; }
 .plan-gear-line { font-size: 11.5px; color: var(--ink-mute); margin-top: 4px; }
 
+.plan-stages { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 18px; }
+.plan-stage { min-width: 0; }
+.plan-stage-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.plan-stage-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(150, 49, 43, .09);
+  color: var(--red);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.plan-stage-head h3 { font-size: 15px; }
+.plan-stage-time { margin-left: auto; font-size: 11.5px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.plan-stage-hint { margin: 3px 0 0 29px; font-size: 12px; color: var(--ink-mute); }
+.plan-stage .plan-steps { margin-top: 8px; }
+.plan-while { display: block; margin-top: 3px; font-style: normal; font-size: 11.5px; color: #7a231f; }
+
 /* ---------- Backmodus ---------- */
 .bake {
   position: fixed;
@@ -1463,8 +1484,9 @@ a { color: inherit; }
   font-weight: 600;
   color: var(--red);
 }
-.bake[data-phase="bake"] .bake-phase { color: #7a231f; }
-.bake[data-phase="chill"] .bake-phase { color: var(--gold); }
+.bake[data-phase="sheet"] .bake-phase { color: #7a231f; }
+.bake[data-phase="cool"] .bake-phase { color: var(--gold); }
+.bake[data-phase="finish"] .bake-phase { color: var(--gold); }
 .bake[data-phase="done"] .bake-phase { color: #2f6b45; }
 .bake-clock { margin-top: 10px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-mute); }
 .bake-title { margin-top: 4px; font-size: clamp(2rem, 5.2vw, 3.3rem); line-height: 1.04; }
@@ -1591,12 +1613,12 @@ a { color: inherit; }
   background: var(--card);
   border: 1.5px solid var(--line-strong);
 }
-.plan-chill .plan-node { border-style: dashed; }
 .plan-oven .plan-node { border-color: var(--gold); }
-.plan-bake .plan-node { background: var(--red); border-color: var(--red); }
+.plan-sheet .plan-node { background: var(--red); border-color: var(--red); }
+.plan-finish .plan-node { background: var(--gold); border-color: var(--gold); }
+.plan-pack .plan-node { border-color: var(--ink-mute); }
 .plan-copy b { font-weight: 600; font-size: 14px; }
 .plan-copy small { display: block; color: var(--ink-mute); font-size: 12px; margin-top: 1px; }
-.plan-chill .plan-copy b { color: var(--ink-soft); font-weight: 500; }
 .plan-note { margin-top: 14px; max-width: 78ch; font-size: 12px; color: var(--ink-mute); }
 .plan-warn {
   margin-top: 14px;

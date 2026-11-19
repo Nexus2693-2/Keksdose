@@ -1163,8 +1163,41 @@
     return `Zeiten angepasst an ${active.join(', ')}`;
   }
 
-  // Ein Ofen, ein Blech: erst alle Teige anrühren (was lange kühlen muss zuerst),
-  // dann der Reihe nach backen, sobald Teig und Kühlzeit fertig sind.
+  // Ein Nachmittag in Stationen: erst alle Teige, dann Blech für Blech,
+  // zum Schluss alles zusammen auskühlen, fertigstellen und verpacken.
+  const TRAY_PIECES = 24;   // so viele Plätzchen passen auf ein normales Blech
+  const COOL_MIN = 15;
+  const PACK_MIN = 5;
+  const RETEMP_MIN = 5;     // Ofen auf eine andere Temperatur umstellen
+
+  const PHASES = [
+    { key: 'dough', label: 'Teige anrühren', hint: 'Erst alles rühren, was du brauchst — der Teig mit der längsten Kühlzeit zuerst. Der Ofen heizt zum Schluss vor.' },
+    { key: 'bake', label: 'Blech für Blech', hint: 'Ein Blech ist im Ofen, das nächste wird in der Zwischenzeit ausgerollt — so bleibt der Ofen nie leer.' },
+    { key: 'cool', label: 'Auskühlen', hint: 'Alles aufs Gitter. Erst ganz kalte Plätzchen werden glasiert oder gefüllt.' },
+    { key: 'finish', label: 'Fertigstellen', hint: 'Füllen, zusammenkleben, glasieren oder bestreuen — jetzt alles in einem Rutsch.' },
+    { key: 'pack', label: 'Verpacken', hint: 'In die Dose schichten, Backpapier zwischen die Lagen.' }
+  ];
+  const PHASE_ORDER = Object.fromEntries(PHASES.map((p, i) => [p.key, i]));
+
+  const traysFor = (r) => Math.max(1, Math.ceil(r.stueck / TRAY_PIECES));
+
+  // Ausrollen, ausstechen und belegen dauert je Blech etwa so lange.
+  function sheetMinutes(r) {
+    if (r.ausstecher) return 12;
+    if (r.id === 'spritzgebaeck') return 9;
+    return 10;
+  }
+
+  // Was nach dem Backen noch passiert, steht im letzten Rezeptschritt.
+  function finishTag(r) {
+    const text = r.schritte.join(' ').toLowerCase();
+    if (/zusammenkleben|zusammenklappen|zusammenlegen|füllen|füllung/.test(text)) return 'füllen';
+    if (/glasier|glasur|zuckerguss|kuvertüre|bestreich|bestreuen|verzier/.test(text)) return 'glasieren';
+    return 'sortieren';
+  }
+
+  const finishMinutes = (r) => (finishTag(r) === 'sortieren' ? 4 : 7);
+
   function planSchedule(ids) {
     const items = ids
       .map((id) => {
@@ -1174,66 +1207,174 @@
       .filter(Boolean);
     if (!items.length) return null;
 
-    let t = startMinutes();
+    const startAt = startMinutes();
     const events = [];
 
-    [...items].sort((a, b) => b.chill - a.chill || b.prep - a.prep).forEach((item) => {
-      events.push({ at: t, order: 0, type: 'prep', item, dur: item.prep });
-      t += item.prep;
-      item.ready = t + item.chill;
-      if (item.chill) events.push({ at: t, order: 1, type: 'chill', item, dur: item.chill });
+    // 1) Alle Teige hintereinander anrühren, der mit der längsten Kühlzeit zuerst.
+    const byChill = [...items].sort((a, b) =>
+      b.chill - a.chill || b.prep - a.prep || a.r.name.localeCompare(b.r.name, 'de'));
+    let t = startAt;
+    byChill.forEach((item) => {
+      item.prepStart = t;
+      item.prepEnd = t + item.prep;
+      item.ready = item.prepEnd + item.chill;
+      events.push({ at: item.prepStart, phase: 'dough', type: 'prep', dur: item.prep, item });
+      t = item.prepEnd;
     });
+    const doughEnd = t;
 
+    // Der Ofen heizt vor, während der letzte Teig gerührt wird.
     const firstReady = Math.min(...items.map((i) => i.ready));
-    const preheat = Math.max(t, firstReady - 10);
-    events.push({ at: preheat, order: 0, type: 'oven', dur: 10 });
+    const preheatAt = Math.max(startAt, Math.min(doughEnd, firstReady) - 10);
+    const ovenReady = preheatAt + 10;
+    events.push({ at: preheatAt, phase: 'dough', type: 'oven', dur: 10 });
 
-    // Der Ofen heizt leer vor – erst danach darf das erste Blech hinein.
-    let oven = preheat + 10;
-    [...items].sort((a, b) => a.ready - b.ready).forEach((item) => {
-      const at = Math.max(oven, item.ready);
-      events.push({ at, order: 2, type: 'bake', item, dur: item.bake });
-      oven = at + item.bake;
+    // 2) Blech für Blech: ausrollen, backen, und währenddessen das nächste Blech.
+    const trays = [];
+    [...items]
+      .sort((a, b) => a.ready - b.ready || a.r.name.localeCompare(b.r.name, 'de'))
+      .forEach((item) => {
+        const n = traysFor(item.r);
+        for (let i = 0; i < n; i += 1) trays.push({ item, index: i, count: n });
+      });
+
+    let free = doughEnd;   // ab hier bist du mit dem Rühren durch
+    let ovenFree = ovenReady;
+    let ovenTemp = null;
+    let firstSheetAt = null;
+    trays.forEach((tray, i) => {
+      const prepStart = Math.max(free, tray.item.ready);
+      const prepEnd = prepStart + sheetMinutes(tray.item.r);
+      const temp = bakeTemp(tray.item.r);
+      const retemp = ovenTemp !== null && temp !== null && temp !== ovenTemp;
+      const bakeAt = Math.max(prepEnd, ovenFree) + (retemp ? RETEMP_MIN : 0);
+      const bakeEnd = bakeAt + tray.item.bake;
+      const nextTray = trays[i + 1] || null;
+      if (firstSheetAt === null) firstSheetAt = prepStart;
+      events.push({
+        at: prepStart,
+        phase: 'bake',
+        type: 'sheet',
+        dur: tray.item.bake,
+        item: tray.item,
+        tray: tray.index + 1,
+        trays: tray.count,
+        temp,
+        ovenWas: ovenTemp,
+        bakeAt,
+        bakeEnd,
+        retemp,
+        wait: Math.max(0, bakeAt - prepEnd),
+        next: nextTray ? { tray: nextTray.index + 1, name: nextTray.item.r.name } : null
+      });
+      free = prepEnd;
+      ovenFree = bakeEnd;
+      if (temp !== null) ovenTemp = temp;
     });
 
-    events.sort((a, b) => a.at - b.at || a.order - b.order);
+    const lastBakeEnd = ovenFree;
+
+    // 3) Erst alles auskühlen, dann zusammen fertigstellen, zuletzt verpacken.
+    events.push({ at: lastBakeEnd, phase: 'cool', type: 'cool', dur: COOL_MIN, item: null });
+    const coolEnd = lastBakeEnd + COOL_MIN;
+
+    let finishAt = coolEnd;
+    items.forEach((item) => {
+      const dur = finishMinutes(item.r);
+      events.push({ at: finishAt, phase: 'finish', type: 'finish', dur, item, tag: finishTag(item.r) });
+      finishAt += dur;
+    });
+
+    events.push({ at: finishAt, phase: 'pack', type: 'pack', dur: PACK_MIN, item: null });
+    const end = finishAt + PACK_MIN;
+
+    events.sort((a, b) => a.at - b.at || PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase]);
+
+    const bounds = {
+      dough: [startAt, Math.max(doughEnd, ovenReady)],
+      bake: [firstSheetAt === null ? doughEnd : firstSheetAt, lastBakeEnd],
+      cool: [lastBakeEnd, coolEnd],
+      finish: [coolEnd, finishAt],
+      pack: [finishAt, end]
+    };
+
+    const stages = PHASES
+      .map((phase) => {
+        const list = events.filter((e) => e.phase === phase.key);
+        if (!list.length) return null;
+        return { ...phase, events: list, from: bounds[phase.key][0], to: bounds[phase.key][1] };
+      })
+      .filter(Boolean);
+
+    const handsOn = items.reduce((sum, i) => sum + i.prep, 0)
+      + trays.reduce((sum, tray) => sum + sheetMinutes(tray.item.r), 0)
+      + items.reduce((sum, i) => sum + finishMinutes(i.r), 0)
+      + 10 + PACK_MIN;
 
     return {
       events,
-      end: oven,
+      stages,
+      start: startAt,
+      end,
+      handsOn,
       pieces: items.reduce((sum, i) => sum + i.r.stueck, 0),
+      trays: trays.length,
       count: items.length
     };
   }
 
   const PLAN_STEP = {
-    prep: {
-      title: (event) => `${event.item.r.name} anrühren`,
-      detail: (event) => `ca. ${event.dur} Min · ${event.item.r.stueck} Stück`
-    },
-    chill: {
-      title: (event) => `${event.item.r.name} kühlen`,
-      detail: (event) => `${event.dur} Min · läuft nebenher`
-    },
-    oven: {
-      title: () => 'Ofen vorheizen',
-      detail: () => 'Ober-/Unterhitze · ca. 10 Min'
-    },
-    bake: {
-      title: (event) => `${event.item.r.name} backen`,
-      detail: (event) => `ca. ${event.dur} Min · ${event.item.r.stueck} Stück`
-    }
+    prep: (event) => ({
+      title: `${event.item.r.name} anrühren`,
+      detail: `ca. ${event.dur} Min · ${event.item.r.stueck} Stück${event.item.chill ? ` · danach ${event.item.chill} Min kühlen` : ''}`
+    }),
+    oven: (event) => ({
+      title: 'Ofen vorheizen',
+      detail: `Ober-/Unterhitze · ca. ${event.dur} Min`
+    }),
+    sheet: (event) => ({
+      title: `${event.item.r.name} · Blech ${event.tray} von ${event.trays}`,
+      detail: `ausrollen & belegen ca. ${sheetMinutes(event.item.r)} Min · backen ${event.dur} Min ab ${clock(event.bakeAt)}`
+    }),
+    cool: (event) => ({
+      title: 'Alles aufs Gitter',
+      detail: `${event.dur} Min abkühlen · erst ganz kalt wird glasiert`
+    }),
+    finish: (event) => ({
+      title: `${event.item.r.name} ${event.tag}`,
+      detail: `ca. ${event.dur} Min · zusammen mit den anderen Sorten`
+    }),
+    pack: (event) => ({
+      title: 'In die Dose schichten',
+      detail: `${event.dur} Min · Backpapier zwischen die Lagen`
+    })
   };
 
   function planStepHTML(event) {
-    const copy = PLAN_STEP[event.type];
+    const copy = PLAN_STEP[event.type](event);
+    const whileLine = event.type === 'sheet' && event.next
+      ? `<em class="plan-while">Ofen läuft: in der Zeit Blech ${event.next.tray} (${esc(event.next.name)}) vorbereiten.</em>`
+      : '';
     return `<li class="plan-step plan-${event.type}">
       <span class="plan-time">${clock(event.at)}</span>
       <span class="plan-node" aria-hidden="true"></span>
       <span class="plan-copy">
-        <b>${esc(copy.title(event))}</b>
-        <small>${esc(copy.detail(event))}</small>
+        <b>${esc(copy.title)}</b>
+        <small>${esc(copy.detail)}</small>
+        ${whileLine}
       </span>
+    </li>`;
+  }
+
+  function planStageHTML(stage, index) {
+    return `<li class="plan-stage">
+      <div class="plan-stage-head">
+        <span class="plan-stage-num" aria-hidden="true">${index + 1}</span>
+        <h3>${esc(stage.label)}</h3>
+        <span class="plan-stage-time">${clock(stage.from)}–${clock(stage.to)} · ${durationLabel(stage.to - stage.from)}</span>
+      </div>
+      <p class="plan-stage-hint">${esc(stage.hint)}</p>
+      <ol class="plan-steps">${stage.events.map(planStepHTML).join('')}</ol>
     </li>`;
   }
 
@@ -1298,7 +1439,7 @@
       pEl.output.innerHTML = `
         <div class="plan-empty">
           <h3>Noch kein Rezept gewählt</h3>
-          <p>Wähle links aus, was du backen willst. Der Plan sagt dir dann, welcher Teig zuerst gerührt wird, was kühlen muss und wann welches Blech in den Ofen kommt.</p>
+          <p>Wähle links aus, was du backen willst. Der Plan führt dich dann in Stationen durch den Nachmittag: erst alle Teige, dann Blech für Blech aus dem Ofen, zum Schluss alles zusammen glasieren und verpacken.</p>
           <p class="plan-empty-hint">Beginne mit dem Rezept, das am längsten kühlen muss — in der Kühlzeit sind die anderen Teige schon gerührt.</p>
         </div>`;
       return;
@@ -1310,7 +1451,8 @@
         <div>
           <p class="eyebrow"><span></span>Dein Nachmittag</p>
           <p class="plan-finish">Fertig um <strong>${clock(schedule.end)}</strong></p>
-          <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${durationLabel(total)} inklusive Kühlzeit</p>
+          <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${schedule.trays} ${schedule.trays === 1 ? 'Blech' : 'Bleche'} · ${durationLabel(total)} inklusive Kühlzeit</p>
+          <p class="plan-sub">Davon ca. ${durationLabel(schedule.handsOn)} am Tisch — der Rest backt, kühlt oder ruht.</p>
           <p class="plan-gear-line">${esc(gearSummary())}</p>
         </div>
         <div class="plan-actions">
@@ -1319,7 +1461,7 @@
         </div>
       </div>
       ${total > 300 ? '<p class="plan-warn">Das sind mehr als fünf Stunden Backen. Für einen Nachmittag passen besser zwei bis vier Rezepte — oder du teilst den Plan auf zwei Tage.</p>' : ''}
-      <ol class="plan-steps">${schedule.events.map(planStepHTML).join('')}</ol>`;
+      <ol class="plan-stages">${schedule.stages.map(planStageHTML).join('')}</ol>`;
   }
 
   if (pEl.options) {
@@ -1467,6 +1609,7 @@
       if (!plan.gear.has('mixer')) hints.push('Ohne Mixer von Hand rühren — dafür ist hier mehr Zeit eingeplant.');
       if (r.ausstecher && !plan.gear.has('cutters')) hints.push(`Für ${r.name} brauchst du einen Ausstecher mit ${r.ausstecher.d} cm.`);
       if (r.id === 'spritzgebaeck' && !plan.gear.has('piping')) hints.push('Ohne Spritzbeutel: den Teig zu Rollen formen und in Scheiben schneiden.');
+      if (event.item.chill) hints.push(`Abgedeckt ${event.item.chill} Min kalt stellen — fertig um ${clock(event.item.ready)}. In der Zeit rührst du den nächsten Teig.`);
 
       return {
         phase: 'Teig anrühren',
@@ -1478,56 +1621,94 @@
       };
     }
 
-    if (event.type === 'chill') {
-      const where = plan.gear.has('freezer') ? 'Gefrierschrank' : 'Kühlschrank';
-      const note = plan.gear.has('freezer')
-        ? 'Im Gefrierschrank ist die Kühlzeit bereits halbiert — hol den Teig rechtzeitig heraus, sonst wird er zu hart zum Ausrollen.'
-        : 'Ohne Gefrierschrank dauert es länger: lieber zehn Minuten mehr einplanen, als mit weichem Teig zu arbeiten.';
-      return {
-        phase: 'Kühlen',
-        title: `${r.name} kalt stellen`,
-        meta: `${event.dur} Min im ${where} · läuft nebenher`,
-        body: `<p class="bake-text">Teig abgedeckt in den ${where} geben. In der Zeit kannst du den nächsten Teig anrühren oder das Blech vorbereiten.</p>
-          <p class="bake-text">${esc(note)}</p>`
-      };
-    }
-
     if (event.type === 'oven') {
-      const next = schedule.events.find((e) => e.type === 'bake' && e.at >= event.at);
-      const temp = next && next.item ? bakeTemp(next.item.r) : null;
+      const first = schedule.events.find((e) => e.type === 'sheet');
+      const temp = first ? first.temp : null;
+      const temps = [...new Set(schedule.events
+        .filter((e) => e.type === 'sheet' && e.temp !== null)
+        .map((e) => e.temp))];
       return {
         phase: 'Vorheizen',
         title: 'Ofen vorheizen',
-        meta: temp ? `${ovenMode()} · ${temp} °C · ca. 10 Min` : 'ca. 10 Min',
-        body: `<p class="bake-text">Blech, Backpapier und Gitter bereitlegen. Die Ofentür bleibt zu, bis die Lampe ausgeht.</p>
+        meta: `${ovenMode()}${temp ? ` · ${temp} °C` : ''} · ca. ${event.dur} Min`,
+        body: `<p class="bake-text">Blech, Backpapier, Gitter und einen dünnen Spatel bereitlegen. Die Ofentür bleibt zu, bis die Lampe ausgeht.</p>
+          ${temps.length > 1 ? `<p class="bake-text">Deine Sorten backen bei ${temps.join(' und ')} °C. Der Plan rechnet das Umstellen mit ein — backe die Bleche am besten in der Reihenfolge des Plans.</p>` : ''}
           ${plan.gear.has('convection') ? '<p class="bake-text">Umluft: 20 °C weniger als im Rezept — genau so steht die Temperatur hier schon.</p>' : ''}`
       };
     }
 
-    const temp = bakeTemp(r);
-    const turn = event.dur >= 12
-      ? `Nach etwa ${Math.round(event.dur / 2)} Minuten das Blech einmal drehen.`
-      : 'Nach der Hälfte der Zeit kurz nachsehen.';
+    if (event.type === 'sheet') {
+      const forming = r.ausstecher
+        ? `Teig zwischen zwei Lagen Backpapier ${r.shape === 'star' ? '8 mm' : '4–6 mm'} dick ausrollen und mit dem ${r.ausstecher.d}-cm-Ausstecher ausstechen.`
+        : r.shape === 'crescent'
+          ? 'Teig zu Rollen formen, in 1 cm dicke Scheiben schneiden und jede Scheibe zum Hörnchen rollen.'
+          : 'Teig ausrollen, Plätzchen formen und mit 2 cm Abstand aufs Blech legen.';
+      const steps = [
+        forming,
+        `Blech auf mittlerer Schiene: ${event.temp ? `${event.temp} °C` : 'die Temperatur aus dem Rezept'}, ${event.dur} Min. Timer starten — von ${clock(event.bakeAt)} bis ${clock(event.bakeEnd)}.`,
+        event.next
+          ? `Während dieses Blech backt: schon Blech ${event.next.tray} (${event.next.name}) ausrollen und belegen — dann steht es bereit, wenn der Ofen frei wird.`
+          : 'Nach dem Backen zwei Minuten auf dem Blech lassen, dann aufs Gitter heben.'
+      ];
+      const hints = [];
+      if (event.retemp) hints.push(`Der Ofen steht noch auf ${event.ovenWas} °C — auf ${event.temp} °C umstellen und kurz warten (${event.wait} Min).`);
+      else if (event.wait > 0) hints.push(`Der Ofen ist noch belegt: Das Blech steht bereit und kommt ${event.wait} Min später hinein — in der Zeit kannst du schon aufräumen.`);
+      if (event.next) hints.push('Wer nur ein Blech hat: Das heiße Blech kurz abkühlen lassen, sonst backt der Teig schon beim Belegen an.');
+      if (plan.gear.has('convection')) hints.push('Umluft trocknet stärker: lieber eine Minute früher herausnehmen und auf dem Blech nachziehen lassen.');
+      return {
+        phase: 'Blech backen',
+        title: `${r.name} · Blech ${event.tray} von ${event.trays}`,
+        meta: `ausrollen ca. ${sheetMinutes(r)} Min · ${event.temp ? event.temp + ' °C · ' : ''}backen ${event.dur} Min`,
+        body: `<ol class="bake-steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+          ${hints.length ? `<ul class="bake-hints">${hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}`
+      };
+    }
+
+    if (event.type === 'cool') {
+      return {
+        phase: 'Auskühlen',
+        title: 'Alles aufs Gitter',
+        meta: `ca. ${event.dur} Min · ${schedule.pieces} Stück aus ${schedule.trays} ${schedule.trays === 1 ? 'Blech' : 'Blechen'}`,
+        body: `<p class="bake-text">Alle Bleche sind aus dem Ofen. Die ersten Sorten sind längst kalt — stell sie schon zusammen und räum die Bleche weg.</p>
+          <p class="bake-text">Die letzten Plätzchen zwei Minuten auf dem Blech lassen, dann aufs Gitter heben. Erst ganz kalte Plätzchen werden glasiert, gefüllt oder bestreut, sonst wird die Glasur fleckig.</p>`
+      };
+    }
+
+    if (event.type === 'finish') {
+      const last = r.schritte[r.schritte.length - 1];
+      const hints = [];
+      if (event.tag === 'füllen') hints.push('Füllung erst auf den kalten Keks streichen, dann zusammensetzen und leicht andrücken.');
+      if (event.tag === 'glasieren') hints.push('Glasur in einem Rutsch auf alle Plätzchen dieser Sorte — so trocknet sie gleichmäßig.');
+      if (event.tag === 'sortieren') hints.push('Kurz durchsortieren: die schönen Stücke nach oben, gebrochene in eine eigene Dose für den Hausgebrauch.');
+      hints.push('Nimm dir die Sorten nacheinander vor und lass die fertigen Plätzchen auf dem Gitter trocknen, bevor sie in die Dose kommen.');
+      return {
+        phase: 'Fertigstellen',
+        title: `${r.name} ${event.tag}`,
+        meta: `ca. ${event.dur} Min · ${r.stueck} Stück`,
+        body: `<p class="bake-text">${esc(last)}</p>
+          <ul class="bake-hints">${hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>`
+      };
+    }
+
     return {
-      phase: 'Backen',
-      title: `${r.name} backen`,
-      meta: `${temp ? temp + ' °C · ' : ''}ca. ${event.dur} Min · ${r.stueck} Stück`,
-      body: `<p class="bake-text">Blech auf mittlerer Schiene in den Ofen. ${esc(turn)}</p>
-        <p class="bake-text">Nach dem Backen zwei Minuten auf dem Blech lassen, dann auf ein Gitter heben — im Blech schwitzen sie und werden weich.</p>
-        ${plan.gear.has('convection') ? '<p class="bake-text">Umluft trocknet stärker: lieber eine Minute früher herausnehmen und auf dem Blech nachziehen lassen.</p>' : ''}`
+      phase: 'Verpacken',
+      title: 'In die Dose schichten',
+      meta: `ca. ${event.dur} Min · ${schedule.count} ${schedule.count === 1 ? 'Sorte' : 'Sorten'} · ${schedule.pieces} Stück`,
+      body: `<p class="bake-text">Sorten getrennt oder mit Backpapier zwischen den Lagen in die Blechdose. Gefüllte und glasierte Plätzchen einlagig legen, damit nichts klebt.</p>
+        <p class="bake-text">Beschriften nicht vergessen: Zimtsterne und Makronen halten zwei Wochen, Mürbeteig drei bis vier Wochen, Schokolade trocken bei 15 bis 18 °C.</p>`
     };
   }
 
   function doneStep(schedule) {
     const names = [...new Set(schedule.events
-      .filter((e) => e.type === 'bake')
+      .filter((e) => e.type === 'prep')
       .map((e) => e.item.r.name))];
     return {
       phase: 'Geschafft',
       title: 'Fertig — guten Appetit',
       meta: `${schedule.count} ${schedule.count === 1 ? 'Sorte' : 'Sorten'} · ${schedule.pieces} Stück · fertig um ${clock(schedule.end)}`,
       body: `<ul class="bake-done">${names.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
-        <p class="bake-text">Erst vollständig auskühlen lassen, dann glasieren oder füllen. In der Blechdose halten sie sich mehrere Wochen.</p>`
+        <p class="bake-text">Alles ist ausgekühlt, fertiggestellt und verstaut. In der Blechdose halten sie sich mehrere Wochen.</p>`
     };
   }
 
