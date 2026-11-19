@@ -8,6 +8,7 @@ Jede Änderung wird an drei Stellen nachgezogen: Commit auf `main`, Deploy zu Ne
 | 18.11.2026 | Feinschliff: Überlauf behoben, Auswahl-Chips, Fokus-Falle | `0dbb12a` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 18.11.2026 | Geführter Backmodus mit Timer, Ausstattungs-Auswahl | `bf2d037` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 18.11.2026 | Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) | `e0522a6` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
+| 19.11.2026 | Feinschliff am Backplan: Ofenfenster je Blech, getrennte Warte- und Umstellzeiten, ruhigere Stationen-Optik | `e93af04` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 
 ## Hinweise
 
