@@ -1242,15 +1242,20 @@
     let ovenFree = ovenReady;
     let ovenTemp = null;
     let firstSheetAt = null;
+    let firstBakeAt = null;
     trays.forEach((tray, i) => {
       const prepStart = Math.max(free, tray.item.ready);
       const prepEnd = prepStart + sheetMinutes(tray.item.r);
       const temp = bakeTemp(tray.item.r);
       const retemp = ovenTemp !== null && temp !== null && temp !== ovenTemp;
-      const bakeAt = Math.max(prepEnd, ovenFree) + (retemp ? RETEMP_MIN : 0);
+      // Erst warten, bis der Ofen frei ist, dann gegebenenfalls umstellen.
+      const ovenWait = Math.max(0, ovenFree - prepEnd);
+      const retempMin = retemp ? RETEMP_MIN : 0;
+      const bakeAt = prepEnd + ovenWait + retempMin;
       const bakeEnd = bakeAt + tray.item.bake;
       const nextTray = trays[i + 1] || null;
       if (firstSheetAt === null) firstSheetAt = prepStart;
+      if (firstBakeAt === null) firstBakeAt = bakeAt;
       events.push({
         at: prepStart,
         phase: 'bake',
@@ -1264,7 +1269,8 @@
         bakeAt,
         bakeEnd,
         retemp,
-        wait: Math.max(0, bakeAt - prepEnd),
+        retempMin,
+        wait: ovenWait,
         next: nextTray ? { tray: nextTray.index + 1, name: nextTray.item.r.name } : null
       });
       free = prepEnd;
@@ -1316,6 +1322,8 @@
       stages,
       start: startAt,
       end,
+      ovenFrom: firstBakeAt === null ? doughEnd : firstBakeAt,
+      ovenTo: lastBakeEnd,
       handsOn,
       pieces: items.reduce((sum, i) => sum + i.r.stueck, 0),
       trays: trays.length,
@@ -1334,7 +1342,7 @@
     }),
     sheet: (event) => ({
       title: `${event.item.r.name} · Blech ${event.tray} von ${event.trays}`,
-      detail: `ausrollen & belegen ca. ${sheetMinutes(event.item.r)} Min · backen ${event.dur} Min ab ${clock(event.bakeAt)}`
+      detail: `Ofen ${clock(event.bakeAt)}–${clock(event.bakeEnd)} · ${event.dur} Min${event.temp ? ` bei ${event.temp} °C` : ''} · ausrollen ca. ${sheetMinutes(event.item.r)} Min davor`
     }),
     cool: (event) => ({
       title: 'Alles aufs Gitter',
@@ -1367,7 +1375,7 @@
   }
 
   function planStageHTML(stage, index) {
-    return `<li class="plan-stage">
+    return `<li class="plan-stage" data-phase="${esc(stage.key)}">
       <div class="plan-stage-head">
         <span class="plan-stage-num" aria-hidden="true">${index + 1}</span>
         <h3>${esc(stage.label)}</h3>
@@ -1453,6 +1461,7 @@
           <p class="plan-finish">Fertig um <strong>${clock(schedule.end)}</strong></p>
           <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${schedule.trays} ${schedule.trays === 1 ? 'Blech' : 'Bleche'} · ${durationLabel(total)} inklusive Kühlzeit</p>
           <p class="plan-sub">Davon ca. ${durationLabel(schedule.handsOn)} am Tisch — der Rest backt, kühlt oder ruht.</p>
+          <p class="plan-sub">Letztes Blech um ${clock(schedule.ovenTo)} aus dem Ofen · Ofenfenster ${clock(schedule.ovenFrom)}–${clock(schedule.ovenTo)}.</p>
           <p class="plan-gear-line">${esc(gearSummary())}</p>
         </div>
         <div class="plan-actions">
@@ -1651,14 +1660,14 @@
           : 'Nach dem Backen zwei Minuten auf dem Blech lassen, dann aufs Gitter heben.'
       ];
       const hints = [];
-      if (event.retemp) hints.push(`Der Ofen steht noch auf ${event.ovenWas} °C — auf ${event.temp} °C umstellen und kurz warten (${event.wait} Min).`);
-      else if (event.wait > 0) hints.push(`Der Ofen ist noch belegt: Das Blech steht bereit und kommt ${event.wait} Min später hinein — in der Zeit kannst du schon aufräumen.`);
+      if (event.retemp) hints.push(`Der Ofen steht noch auf ${event.ovenWas} °C — vor diesem Blech auf ${event.temp} °C umstellen (${event.retempMin} Min eingeplant).`);
+      if (event.wait > 0) hints.push(`Der Ofen ist noch belegt: Das Blech steht bereit und kommt ${event.wait} Min später hinein — in der Zeit kannst du schon aufräumen.`);
       if (event.next) hints.push('Wer nur ein Blech hat: Das heiße Blech kurz abkühlen lassen, sonst backt der Teig schon beim Belegen an.');
       if (plan.gear.has('convection')) hints.push('Umluft trocknet stärker: lieber eine Minute früher herausnehmen und auf dem Blech nachziehen lassen.');
       return {
         phase: 'Blech backen',
         title: `${r.name} · Blech ${event.tray} von ${event.trays}`,
-        meta: `ausrollen ca. ${sheetMinutes(r)} Min · ${event.temp ? event.temp + ' °C · ' : ''}backen ${event.dur} Min`,
+        meta: `ausrollen ca. ${sheetMinutes(r)} Min · Ofen ${clock(event.bakeAt)}–${clock(event.bakeEnd)}${event.temp ? ` · ${event.temp} °C` : ''}`,
         body: `<ol class="bake-steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
           ${hints.length ? `<ul class="bake-hints">${hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}`
       };
