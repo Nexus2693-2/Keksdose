@@ -2,7 +2,7 @@
 
 Plätzchen-Rezepte als statische Website: HTML, CSS und JavaScript in `public/`, kein Build-Schritt.
 35 Rezepte, Plätzchen-Finder, Portions-/Ausstecher-Rechner, Einkaufsliste, Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
-Der Backplan lässt sich als Checkliste drucken und per Link teilen; nach dem ersten Besuch läuft die Seite auch ohne Netz (PWA).
+Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je Sorte, lässt sich als Checkliste drucken, per Link teilen und als Kalenderdatei exportieren; nach dem ersten Besuch läuft die Seite auch ohne Netz (PWA).
 
 ## Struktur
 
@@ -16,9 +16,21 @@ Der Backplan lässt sich als Checkliste drucken und per Link teilen; nach dem er
 
 ## Teilen, Drucken, Offline
 
-- **Plan-Link:** Rezepte, Startzeit und Ausstattung stehen in der Adresse (`#plan?ids=…`). „Link kopieren“ im Backplan gibt den Plan weiter, ein solcher Link stellt ihn beim Öffnen wieder her.
-- **Plan drucken:** druckt nur die fünf Stationen als Checkliste mit Kästchen zum Abhaken.
+- **Plan-Link:** Rezepte, Startzeit, Ausstattung und alle Feinheiten stehen in der Adresse (`#plan?ids=…&start=…&gear=…&cap=…&team=…&tempo=…&pause=…&ziel=…&menge=…&ohne=…`). „Link kopieren“ im Backplan gibt den Plan weiter, ein solcher Link stellt ihn beim Öffnen wieder her.
+- **Plan drucken:** druckt nur die Stationen als Checkliste mit Kästchen zum Abhaken.
+- **In den Kalender:** lädt eine `.ics`-Datei mit allen Stationen als Termine.
 - **Offline:** `sw.js` legt die Seite nach dem ersten Besuch im Cache ab, `manifest.webmanifest` macht sie installierbar. Bei jeder Veröffentlichung `VERSION` in `public/sw.js` hochzählen, sonst bleibt die alte Hülle aktiv.
+
+## Backplan einstellen
+
+- **Bleche gleichzeitig** (1–3): Bleche mit derselben Temperatur backen in einem Rutsch; der Plan fasst sie zu Ofengängen zusammen und rechnet zwei Minuten mehr Backzeit ein.
+- **Wer backt mit?** (1–3 Personen) und **Tempo** (gemütlich/normal/zügig): verkürzen Rühren, Formen und Fertigstellen. Rühren lässt sich weniger beschleunigen als das Belegen von Blechen.
+- **Pause:** Uhrzeit und Dauer; der Plan hält an der nächsten Station an und verschiebt alles danach, statt mitten im Ausrollen zu unterbrechen.
+- **Fertig um:** prüft die Zielzeit. Passt es nicht, nennt der Plan die späteste Startzeit und setzt sie auf Wunsch direkt.
+- **Menge je Sorte:** ½×, 1× oder 2× — Stückzahl, Bleche und Rührzeit wachsen mit; „Alles auf die Einkaufsliste“ übernimmt die Menge.
+- **nur backen:** lässt Glasur, Füllung oder Verzieren für eine Sorte aus dem Plan.
+- **Vorschläge:** Omas Klassiker, Schnelle Runde und Schoko & Nuss füllen die Auswahl mit einem Klick.
+- **Jetzt:** setzt den Start auf die nächste Fünf-Minuten-Marke der aktuellen Uhrzeit.
 
 ## Lokal ansehen
 

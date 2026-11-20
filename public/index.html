@@ -137,8 +137,9 @@
           <p class="eyebrow"><span></span>Mehrere Sorten, ein Nachmittag</p>
           <h2 id="planTitle">Backplan</h2>
           <p class="section-lede">
-            Wähle zwei, drei oder mehr Rezepte — der Plan führt dich in Stationen durch den Nachmittag:
+            Wähle zwei, drei oder mehr Rezepte — der Plan führt dich in Stationen durch den Backtag:
             erst alle Teige, dann Blech für Blech aus dem Ofen, zum Schluss alles zusammen glasieren und verpacken.
+            Bleche, helfende Hände, Tempo, Pause und Zielzeit stellst du passend zu deiner Küche ein.
           </p>
         </div>
       </div>
@@ -149,12 +150,54 @@
             <h3>Deine Auswahl</h3>
             <span class="plan-count" id="planCount" aria-live="polite">noch nichts gewählt</span>
           </div>
+          <div class="plan-presets" id="planPresets" role="group" aria-label="Vorschläge für den Backplan"></div>
           <div class="plan-chips" id="planChips" hidden></div>
           <div class="search plan-search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
             <input id="planSearch" type="search" placeholder="Rezept suchen …" aria-label="Rezepte für den Backplan durchsuchen" autocomplete="off">
           </div>
           <div class="plan-options" id="planOptions" role="group" aria-label="Rezepte für den Backplan auswählen"></div>
+          <div class="plan-tune">
+            <label class="plan-field">Bleche gleichzeitig
+              <select id="planCapacity">
+                <option value="1">1 Blech</option>
+                <option value="2">2 Bleche</option>
+                <option value="3">3 Bleche</option>
+              </select>
+            </label>
+            <label class="plan-field">Wer backt mit?
+              <select id="planHelpers">
+                <option value="1">Ich allein</option>
+                <option value="2">Zu zweit</option>
+                <option value="3">Zu dritt</option>
+              </select>
+            </label>
+            <label class="plan-field">Tempo
+              <select id="planTempo">
+                <option value="gemuetlich">Gemütlich</option>
+                <option value="normal" selected>Normal</option>
+                <option value="zuegig">Zügig</option>
+              </select>
+            </label>
+            <label class="plan-field">Pause ab
+              <input type="time" id="planPauseAt" aria-label="Pause beginnen um">
+            </label>
+            <label class="plan-field">Pause
+              <select id="planPauseMin">
+                <option value="0">keine</option>
+                <option value="15">15 Min</option>
+                <option value="20">20 Min</option>
+                <option value="30">30 Min</option>
+                <option value="45">45 Min</option>
+              </select>
+            </label>
+            <label class="plan-field">Fertig um
+              <span class="plan-field-row">
+                <input type="time" id="planDeadline" aria-label="Spätestens fertig um">
+                <button class="plan-deadline-clear" id="planDeadlineClear" type="button" aria-label="Zielzeit entfernen">×</button>
+              </span>
+            </label>
+          </div>
           <div class="plan-gear">
             <div class="plan-gear-head">
               <span>Deine Ausstattung</span>
@@ -164,12 +207,13 @@
           </div>
           <div class="plan-picker-foot">
             <label class="plan-start">Start <input type="time" id="planStart" value="14:00"></label>
-            <button class="plan-clear" id="planClear" type="button">Auswahl leeren</button>
+            <button class="plan-now" id="planNow" type="button">Jetzt</button>
+            <button class="plan-clear" id="planClear" type="button">Leeren</button>
           </div>
         </div>
         <div class="plan-output" id="planOutput"></div>
       </div>
-      <p class="plan-note">Arbeitszeiten sind geschätzt, die Backzeiten kommen aus den Rezeptangaben. Der Plan rechnet mit einem Ofen und einem Blech nach dem anderen: Während ein Blech backt, wird das nächste ausgerollt. Deine Ausstattung verkürzt Rühr-, Kühl- und Backzeiten. Mit <strong>Jetzt losbacken</strong> führt dich der Backmodus Schritt für Schritt durch den Nachmittag.</p>
+      <p class="plan-note">Arbeitszeiten sind geschätzt, die Backzeiten kommen aus den Rezeptangaben. Der Plan rechnet mit einem Ofen: Bleche, die zusammen hineinpassen und dieselbe Temperatur brauchen, backen in einem Rutsch — währenddessen wird das nächste vorbereitet. Ausstattung, helfende Hände und Tempo verkürzen die Zeiten am Tisch, eine Pause hält den Plan an der nächsten Station an. Mit <strong>Jetzt losbacken</strong> führt dich der Backmodus Schritt für Schritt durch den Backtag, <strong>In den Kalender</strong> legt alle Stationen als Termine ab.</p>
     </section>
 
     <section id="tipps" class="wrap tips" aria-labelledby="tipsTitle">

@@ -1084,12 +1084,43 @@
   ];
   const GEAR_DEFAULT = ['mixer', 'scale'];
 
+  // Wie viel Zeit am Tisch bleibt: Tempo und helfende Hände.
+  const TEMPO = [
+    { key: 'gemuetlich', label: 'Gemütlich', factor: 1.2, hint: 'Mit Ruhe zwischen den Schritten' },
+    { key: 'normal', label: 'Normal', factor: 1, hint: 'Entspannt, aber zügig' },
+    { key: 'zuegig', label: 'Zügig', factor: 0.85, hint: 'Alles in einem Rutsch' }
+  ];
+  const TEMPO_DEFAULT = 'normal';
+  const FACTORS = [0.5, 1, 2];
+
+  const TRAY_PIECES = 24;   // so viele Plätzchen passen auf ein normales Blech
+  const COOL_MIN = 15;
+  const PACK_MIN = 5;
+  const RETEMP_MIN = 5;     // Ofen auf eine andere Temperatur umstellen
+  const PREHEAT_MIN = 10;
+
+  // Vorschläge für die Schnellauswahl: bewusst gemischt, damit ein Nachmittag
+  // nicht nur aus einer Teigart besteht.
+  const PLAN_PRESETS = [
+    { key: 'omas', label: 'Omas Klassiker', hint: 'Vier Sorten für die Blechdose', ids: ['vanillekipferl', 'zimtsterne', 'spritzgebaeck', 'heidesand'] },
+    { key: 'schnell', label: 'Schnelle Runde', hint: 'Drei Sorten ohne Wartezeit', ids: ['vegane-hafer-kekse', 'kokosmakronen', 'haferflockenkekse'] },
+    { key: 'schoko', label: 'Schoko & Nuss', hint: 'Drei Sorten für Naschkatzen', ids: ['spritzgebaeck', 'brownie-cookies', 'schoko-nuss-cookies'] }
+  ];
+
   const plan = {
     ids: [],
     start: '14:00',
     query: '',
     gear: new Set(GEAR_DEFAULT),
-    step: 0
+    step: 0,
+    capacity: 1,        // Bleche gleichzeitig im Ofen
+    helpers: 1,         // Personen am Tisch
+    tempo: TEMPO_DEFAULT,
+    pauseAt: '',
+    pauseMin: 0,
+    deadline: '',
+    factors: {},        // Rezept-ID -> 0.5 | 1 | 2
+    skip: new Set()     // Rezepte ohne Fertigstellen (Glasur, Füllung)
   };
 
   const pEl = {
@@ -1098,19 +1129,54 @@
     search: document.getElementById('planSearch'),
     start: document.getElementById('planStart'),
     count: document.getElementById('planCount'),
-    chips: document.getElementById('planChips'),
+    mix: document.getElementById('planChips'),
     clear: document.getElementById('planClear'),
     gearChips: document.getElementById('planGearChips'),
-    gearNote: document.getElementById('planGearNote')
+    gearNote: document.getElementById('planGearNote'),
+    capacity: document.getElementById('planCapacity'),
+    helpers: document.getElementById('planHelpers'),
+    tempo: document.getElementById('planTempo'),
+    pauseAt: document.getElementById('planPauseAt'),
+    pauseMin: document.getElementById('planPauseMin'),
+    deadline: document.getElementById('planDeadline'),
+    deadlineClear: document.getElementById('planDeadlineClear'),
+    presets: document.getElementById('planPresets'),
+    now: document.getElementById('planNow')
   };
+
+  const parseClock = (value) => {
+    const hit = String(value || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    return hit ? Number(hit[1]) * 60 + Number(hit[2]) : null;
+  };
+
+  const factorValue = (value) => {
+    const n = Number(value);
+    return FACTORS.includes(n) ? n : 1;
+  };
+  const factorOf = (id) => factorValue(plan.factors[id]);
+
+  const tempoEntry = () => TEMPO.find((t) => t.key === plan.tempo) || TEMPO[1];
 
   function loadPlan() {
     try {
       const raw = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
       if (Array.isArray(raw.ids)) plan.ids = raw.ids.filter((id) => RECIPES.some((r) => r.id === id));
-      if (typeof raw.start === 'string' && /^\d{2}:\d{2}$/.test(raw.start)) plan.start = raw.start;
+      if (typeof raw.start === 'string' && parseClock(raw.start) !== null) plan.start = raw.start;
       if (Array.isArray(raw.gear)) plan.gear = new Set(raw.gear.filter((k) => GEAR.some((g) => g.key === k)));
       if (Number.isInteger(raw.step) && raw.step >= 0) plan.step = raw.step;
+      if (Number.isInteger(raw.capacity)) plan.capacity = Math.max(1, Math.min(3, raw.capacity));
+      if (Number.isInteger(raw.helpers)) plan.helpers = Math.max(1, Math.min(3, raw.helpers));
+      if (TEMPO.some((t) => t.key === raw.tempo)) plan.tempo = raw.tempo;
+      if (typeof raw.pauseAt === 'string' && parseClock(raw.pauseAt) !== null) plan.pauseAt = raw.pauseAt;
+      if (Number.isFinite(raw.pauseMin)) plan.pauseMin = Math.max(0, Math.min(90, Math.round(raw.pauseMin)));
+      if (typeof raw.deadline === 'string' && parseClock(raw.deadline) !== null) plan.deadline = raw.deadline;
+      if (raw.factors && typeof raw.factors === 'object') {
+        plan.factors = {};
+        Object.entries(raw.factors).forEach(([id, value]) => {
+          if (plan.ids.includes(id) && factorValue(value) !== 1) plan.factors[id] = factorValue(value);
+        });
+      }
+      if (Array.isArray(raw.skip)) plan.skip = new Set(raw.skip.filter((id) => plan.ids.includes(id)));
     } catch (err) { /* ohne Speicher startet der Plan leer */ }
   }
 
@@ -1120,7 +1186,15 @@
         ids: plan.ids,
         start: plan.start,
         gear: [...plan.gear],
-        step: plan.step
+        step: plan.step,
+        capacity: plan.capacity,
+        helpers: plan.helpers,
+        tempo: plan.tempo,
+        pauseAt: plan.pauseAt,
+        pauseMin: plan.pauseMin,
+        deadline: plan.deadline,
+        factors: plan.factors,
+        skip: [...plan.skip]
       }));
     } catch (err) { /* Sitzung genügt */ }
     syncPlanHash();
@@ -1133,7 +1207,19 @@
   function planLink() {
     const ids = plan.ids.map(encodeURIComponent).join(',');
     const gear = GEAR.filter((g) => plan.gear.has(g.key)).map((g) => g.key).join(',');
-    return `${location.origin}${location.pathname}${location.search}#plan?ids=${ids}&start=${encodeURIComponent(plan.start)}&gear=${gear}`;
+    const parts = [`ids=${ids}`, `start=${encodeURIComponent(plan.start)}`, `gear=${gear}`];
+    if (plan.capacity !== 1) parts.push(`cap=${plan.capacity}`);
+    if (plan.helpers !== 1) parts.push(`team=${plan.helpers}`);
+    if (plan.tempo !== TEMPO_DEFAULT) parts.push(`tempo=${encodeURIComponent(plan.tempo)}`);
+    if (plan.pauseMin > 0 && plan.pauseAt) parts.push(`pause=${encodeURIComponent(plan.pauseAt)},${plan.pauseMin}`);
+    if (plan.deadline) parts.push(`ziel=${encodeURIComponent(plan.deadline)}`);
+    const amounts = plan.ids
+      .filter((id) => factorOf(id) !== 1)
+      .map((id) => `${encodeURIComponent(id)}:${factorOf(id)}`);
+    if (amounts.length) parts.push(`menge=${amounts.join(',')}`);
+    const skips = plan.ids.filter((id) => plan.skip.has(id));
+    if (skips.length) parts.push(`ohne=${skips.map(encodeURIComponent).join(',')}`);
+    return `${location.origin}${location.pathname}${location.search}#plan?${parts.join('&')}`;
   }
 
   function syncPlanHash() {
@@ -1154,11 +1240,39 @@
     if (!valid.length) return false;
     plan.ids = valid;
     const start = params.get('start') || '';
-    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(start)) plan.start = start;
+    if (parseClock(start) !== null) plan.start = start;
     if (params.has('gear')) {
       const keys = (params.get('gear') || '').split(',').map((s) => s.trim()).filter(Boolean);
       plan.gear = new Set(keys.filter((k) => GEAR.some((g) => g.key === k)));
     }
+    const cap = Number(params.get('cap'));
+    if (Number.isInteger(cap) && cap >= 1 && cap <= 3) plan.capacity = cap;
+    const team = Number(params.get('team'));
+    if (Number.isInteger(team) && team >= 1 && team <= 3) plan.helpers = team;
+    const tempo = params.get('tempo') || '';
+    if (TEMPO.some((t) => t.key === tempo)) plan.tempo = tempo;
+
+    const pause = (params.get('pause') || '').split(',');
+    if (parseClock(pause[0]) !== null) plan.pauseAt = pause[0];
+    const pauseMin = Number(pause[1]);
+    if (Number.isFinite(pauseMin) && pauseMin > 0) plan.pauseMin = Math.min(90, Math.round(pauseMin));
+
+    const ziel = params.get('ziel') || '';
+    if (parseClock(ziel) !== null) plan.deadline = ziel;
+
+    plan.factors = {};
+    (params.get('menge') || '').split(',').forEach((pair) => {
+      const [id, value] = pair.split(':');
+      if (!plan.ids.includes(id)) return;
+      const f = factorValue(value);
+      if (f !== 1) plan.factors[id] = f;
+    });
+
+    plan.skip = new Set((params.get('ohne') || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((id) => plan.ids.includes(id)));
+
     plan.step = 0;
     return true;
   }
@@ -1207,14 +1321,72 @@
     }
   }
 
+  // Die Zeiten als Kalenderdatei: Erinnerungen landen dort, wo der Wecker klingelt.
+  function downloadPlan() {
+    const schedule = planSchedule(plan.ids);
+    if (!schedule) return;
+    const day = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = (mins) => {
+      const m = ((Math.round(mins) % 1440) + 1440) % 1440;
+      return `${day.getFullYear()}${pad(day.getMonth() + 1)}${pad(day.getDate())}T${pad(Math.floor(m / 60))}${pad(m % 60)}00`;
+    };
+    const icsText = (s) => String(s)
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n');
+
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Keksdose//Backplan//DE',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:Keksdose-Backplan'
+    ];
+    schedule.events.forEach((event, i) => {
+      const copy = PLAN_STEP[event.type](event);
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:keksdose-${day.getTime()}-${i}@keksdose.local`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
+        `DTSTART:${stamp(event.at)}`,
+        `DTEND:${stamp(event.at + Math.max(1, event.dur || 1))}`,
+        `SUMMARY:${icsText(copy.title)}`,
+        `DESCRIPTION:${icsText(copy.detail)}`,
+        'END:VEVENT'
+      );
+    });
+    lines.push('END:VCALENDAR');
+
+    const text = lines.join('\r\n');
+    const name = `keksdose-backplan-${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}.ics`;
+    const link = document.createElement('a');
+    link.download = name;
+    if (typeof URL !== 'undefined' && URL.createObjectURL && typeof Blob !== 'undefined') {
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } else {
+      link.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(text);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  }
+
   const clock = (mins) => {
     const m = ((Math.round(mins) % 1440) + 1440) % 1440;
     return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   };
 
   function startMinutes() {
-    const [h, m] = plan.start.split(':').map(Number);
-    return (h || 0) * 60 + (m || 0);
+    const parsed = parseClock(plan.start);
+    return parsed === null ? 14 * 60 : parsed;
   }
 
   const durationLabel = (mins) => {
@@ -1224,20 +1396,33 @@
     return `${h} Std${rest ? ' ' + rest + ' Min' : ''}`;
   };
 
+  // Helfende Hände und Tempo wirken auf alles, was mit den Händen passiert.
+  // Rühren lässt sich weniger parallelisieren als Bleche belegen.
+  function handScale(perHelper) {
+    const team = 1 + perHelper * Math.max(0, plan.helpers - 1);
+    return tempoEntry().factor / team;
+  }
+
+  const piecesFor = (r) => Math.max(1, Math.round(r.stueck * factorOf(r.id)));
+
   // Die Rezeptzeit umfasst Rühren und Backen. Für den Plan teilen wir sie auf:
   // geknetet wird meist länger als gebacken.
   function phaseTimes(r) {
+    const factor = factorOf(r.id);
     const base = r.level === 'Einfach' ? 15 : r.level === 'Mittel' ? 20 : 28;
     const prepBase = Math.max(10, Math.min(base, Math.round(r.zeit * 0.6)));
     const bakeBase = Math.max(6, r.zeit - prepBase);
     // Ohne Mixer dauert das Rühren länger, mit Umluft backt es kürzer,
-    // im Gefrierschrank halbiert sich die Kühlzeit.
-    const prep = plan.gear.has('mixer') ? prepBase : Math.round((prepBase * 1.35) / 5) * 5;
+    // im Gefrierschrank halbiert sich die Kühlzeit. Die doppelte Menge
+    // braucht etwas länger, aber nicht doppelt so lang.
+    const mixer = plan.gear.has('mixer') ? 1 : 1.35;
+    const amount = 1 + 0.15 * (factor - 1);
+    const prep = Math.max(4, Math.round(prepBase * mixer * amount * handScale(0.35)));
     const bake = plan.gear.has('convection') ? Math.max(5, Math.round(bakeBase * 0.85)) : bakeBase;
     const chill = r.kuehl && plan.gear.has('freezer')
       ? Math.max(20, Math.round((r.kuehl / 2) / 5) * 5)
       : (r.kuehl || 0);
-    return { prep, bake, chill };
+    return { prep, bake, chill, factor, pieces: piecesFor(r) };
   }
 
   function gearSummary() {
@@ -1246,29 +1431,34 @@
     return `Zeiten angepasst an ${active.join(', ')}`;
   }
 
+  function planSettingsSummary() {
+    const bits = [
+      plan.capacity === 1 ? 'ein Blech im Ofen' : `${plan.capacity} Bleche gleichzeitig`,
+      plan.helpers === 1 ? 'allein am Tisch' : `zu ${plan.helpers} am Tisch`,
+      tempoEntry().label.toLowerCase()
+    ];
+    if (plan.pauseMin > 0 && plan.pauseAt) bits.push(`${plan.pauseMin} Min Pause ab ${plan.pauseAt}`);
+    return bits.join(' · ');
+  }
+
   // Ein Nachmittag in Stationen: erst alle Teige, dann Blech für Blech,
   // zum Schluss alles zusammen auskühlen, fertigstellen und verpacken.
-  const TRAY_PIECES = 24;   // so viele Plätzchen passen auf ein normales Blech
-  const COOL_MIN = 15;
-  const PACK_MIN = 5;
-  const RETEMP_MIN = 5;     // Ofen auf eine andere Temperatur umstellen
-
   const PHASES = [
     { key: 'dough', label: 'Teige anrühren', hint: 'Erst alles rühren, was du brauchst — der Teig mit der längsten Kühlzeit zuerst. Der Ofen heizt zum Schluss vor.' },
-    { key: 'bake', label: 'Blech für Blech', hint: 'Ein Blech ist im Ofen, das nächste wird in der Zwischenzeit ausgerollt — so bleibt der Ofen nie leer.' },
+    { key: 'bake', label: 'Blech für Blech', hint: 'Was in den Ofen passt, backt zusammen. Das nächste Blech wird in der Zwischenzeit vorbereitet — so bleibt der Ofen nie leer.' },
+    { key: 'pause', label: 'Pause', hint: 'Der Plan hält an. Tee holen, Hände waschen, durchatmen — danach geht es weiter.' },
     { key: 'cool', label: 'Auskühlen', hint: 'Alles aufs Gitter. Erst ganz kalte Plätzchen werden glasiert oder gefüllt.' },
     { key: 'finish', label: 'Fertigstellen', hint: 'Füllen, zusammenkleben, glasieren oder bestreuen — jetzt alles in einem Rutsch.' },
     { key: 'pack', label: 'Verpacken', hint: 'In die Dose schichten, Backpapier zwischen die Lagen.' }
   ];
   const PHASE_ORDER = Object.fromEntries(PHASES.map((p, i) => [p.key, i]));
 
-  const traysFor = (r) => Math.max(1, Math.ceil(r.stueck / TRAY_PIECES));
+  const traysFor = (r) => Math.max(1, Math.ceil(piecesFor(r) / TRAY_PIECES));
 
   // Ausrollen, ausstechen und belegen dauert je Blech etwa so lange.
   function sheetMinutes(r) {
-    if (r.ausstecher) return 12;
-    if (r.id === 'spritzgebaeck') return 9;
-    return 10;
+    const base = r.ausstecher ? 12 : r.id === 'spritzgebaeck' ? 9 : 10;
+    return Math.max(4, Math.round(base * handScale(0.6)));
   }
 
   // Was nach dem Backen noch passiert, steht im letzten Rezeptschritt.
@@ -1279,7 +1469,13 @@
     return 'sortieren';
   }
 
-  const finishMinutes = (r) => (finishTag(r) === 'sortieren' ? 4 : 7);
+  function finishMinutes(r) {
+    if (plan.skip.has(r.id)) return 0;
+    const base = finishTag(r) === 'sortieren' ? 4 : 7;
+    return Math.max(2, Math.round(base * handScale(0.6)));
+  }
+
+  const packMinutes = () => Math.max(3, Math.round(PACK_MIN * handScale(0.6)));
 
   function planSchedule(ids) {
     const items = ids
@@ -1291,6 +1487,7 @@
     if (!items.length) return null;
 
     const startAt = startMinutes();
+    const capacity = Math.max(1, Math.min(3, Number(plan.capacity) || 1));
     const events = [];
 
     // 1) Alle Teige hintereinander anrühren, der mit der längsten Kühlzeit zuerst.
@@ -1308,9 +1505,9 @@
 
     // Der Ofen heizt vor, während der letzte Teig gerührt wird.
     const firstReady = Math.min(...items.map((i) => i.ready));
-    const preheatAt = Math.max(startAt, Math.min(doughEnd, firstReady) - 10);
-    const ovenReady = preheatAt + 10;
-    events.push({ at: preheatAt, phase: 'dough', type: 'oven', dur: 10 });
+    const preheatAt = Math.max(startAt, Math.min(doughEnd, firstReady) - PREHEAT_MIN);
+    const ovenReady = preheatAt + PREHEAT_MIN;
+    events.push({ at: preheatAt, phase: 'dough', type: 'oven', dur: PREHEAT_MIN });
 
     // 2) Blech für Blech: ausrollen, backen, und währenddessen das nächste Blech.
     const trays = [];
@@ -1326,27 +1523,42 @@
     let ovenTemp = null;
     let firstSheetAt = null;
     let firstBakeAt = null;
-    trays.forEach((tray, i) => {
-      const prepStart = Math.max(free, tray.item.ready);
-      const prepEnd = prepStart + sheetMinutes(tray.item.r);
-      const temp = bakeTemp(tray.item.r);
+    let pending = [...trays];
+    let rounds = 0;
+
+    while (pending.length) {
+      const head = pending.shift();
+      const temp = bakeTemp(head.item.r);
+      // Was gleichzeitig in den Ofen passt und dieselbe Temperatur braucht,
+      // backt in einem Rutsch.
+      const batch = [head];
+      while (pending.length && batch.length < capacity && bakeTemp(pending[0].item.r) === temp) {
+        batch.push(pending.shift());
+      }
+
+      const prepStart = Math.max(free, ...batch.map((tray) => tray.item.ready));
+      const forming = batch.reduce((sum, tray) => sum + sheetMinutes(tray.item.r), 0);
+      const prepEnd = prepStart + forming;
       const retemp = ovenTemp !== null && temp !== null && temp !== ovenTemp;
-      // Erst warten, bis der Ofen frei ist, dann gegebenenfalls umstellen.
-      const ovenWait = Math.max(0, ovenFree - prepEnd);
       const retempMin = retemp ? RETEMP_MIN : 0;
+      const ovenWait = Math.max(0, ovenFree - prepEnd);
       const bakeAt = prepEnd + ovenWait + retempMin;
-      const bakeEnd = bakeAt + tray.item.bake;
-      const nextTray = trays[i + 1] || null;
+      // Zwei Bleche auf einmal brauchen ein bis zwei Minuten länger.
+      const bakeDur = Math.max(...batch.map((tray) => tray.item.bake)) + (batch.length > 1 ? 2 : 0);
+      const bakeEnd = bakeAt + bakeDur;
+      const next = pending[0] || null;
+
       if (firstSheetAt === null) firstSheetAt = prepStart;
       if (firstBakeAt === null) firstBakeAt = bakeAt;
       events.push({
         at: prepStart,
         phase: 'bake',
         type: 'sheet',
-        dur: tray.item.bake,
-        item: tray.item,
-        tray: tray.index + 1,
-        trays: tray.count,
+        dur: bakeDur,
+        item: batch[0].item,
+        batch,
+        tray: head.index + 1,
+        trays: head.count,
         temp,
         ovenWas: ovenTemp,
         bakeAt,
@@ -1354,12 +1566,15 @@
         retemp,
         retempMin,
         wait: ovenWait,
-        next: nextTray ? { tray: nextTray.index + 1, name: nextTray.item.r.name } : null
+        formMin: forming,
+        next: next ? { tray: next.index + 1, name: next.item.r.name } : null
       });
+
       free = prepEnd;
       ovenFree = bakeEnd;
       if (temp !== null) ovenTemp = temp;
-    });
+      rounds += 1;
+    }
 
     const lastBakeEnd = ovenFree;
 
@@ -1370,62 +1585,104 @@
     let finishAt = coolEnd;
     items.forEach((item) => {
       const dur = finishMinutes(item.r);
+      if (!dur) return;   // "nur backen": keine Glasur, keine Füllung
       events.push({ at: finishAt, phase: 'finish', type: 'finish', dur, item, tag: finishTag(item.r) });
       finishAt += dur;
     });
 
-    events.push({ at: finishAt, phase: 'pack', type: 'pack', dur: PACK_MIN, item: null });
-    const end = finishAt + PACK_MIN;
+    const packDur = packMinutes();
+    events.push({ at: finishAt, phase: 'pack', type: 'pack', dur: packDur, item: null });
+
+    let end = finishAt + packDur;
+    let ovenFrom = firstBakeAt === null ? doughEnd : firstBakeAt;
+    let ovenTo = lastBakeEnd;
+
+    // 4) Pause: Der Plan hält an der nächsten geplanten Tätigkeit an, damit
+    // nichts mitten im Ausrollen stehen bleibt.
+    const pauseWanted = parseClock(plan.pauseAt);
+    const pauseLen = Math.max(0, Math.min(90, Math.round(Number(plan.pauseMin) || 0)));
+    let pauseInfo = null;
+    if (pauseWanted !== null && pauseLen > 0 && pauseWanted >= startAt && pauseWanted < end) {
+      const anchor = Math.min(...events.filter((e) => e.at >= pauseWanted).map((e) => e.at));
+      events.forEach((e) => {
+        if (e.at >= anchor) e.at += pauseLen;
+        if (typeof e.bakeAt === 'number' && e.bakeAt >= anchor) e.bakeAt += pauseLen;
+        if (typeof e.bakeEnd === 'number' && e.bakeEnd >= anchor) e.bakeEnd += pauseLen;
+      });
+      events.push({ at: anchor, phase: 'pause', type: 'pause', dur: pauseLen, item: null });
+      pauseInfo = { at: anchor, dur: pauseLen };
+      end += pauseLen;
+      if (ovenTo >= anchor) ovenTo += pauseLen;
+      if (ovenFrom >= anchor) ovenFrom += pauseLen;
+    }
 
     events.sort((a, b) => a.at - b.at || PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase]);
-
-    const bounds = {
-      dough: [startAt, Math.max(doughEnd, ovenReady)],
-      bake: [firstSheetAt === null ? doughEnd : firstSheetAt, lastBakeEnd],
-      cool: [lastBakeEnd, coolEnd],
-      finish: [coolEnd, finishAt],
-      pack: [finishAt, end]
-    };
 
     const stages = PHASES
       .map((phase) => {
         const list = events.filter((e) => e.phase === phase.key);
         if (!list.length) return null;
-        return { ...phase, events: list, from: bounds[phase.key][0], to: bounds[phase.key][1] };
+        const from = Math.min(...list.map((e) => e.at));
+        const to = Math.max(...list.map((e) => e.at + (e.dur || 0)));
+        return { ...phase, events: list, from, to };
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => a.from - b.from || PHASE_ORDER[a.key] - PHASE_ORDER[b.key]);
 
     const handsOn = items.reduce((sum, i) => sum + i.prep, 0)
       + trays.reduce((sum, tray) => sum + sheetMinutes(tray.item.r), 0)
       + items.reduce((sum, i) => sum + finishMinutes(i.r), 0)
-      + 10 + PACK_MIN;
+      + PREHEAT_MIN + packDur;
 
     return {
       events,
       stages,
       start: startAt,
       end,
-      ovenFrom: firstBakeAt === null ? doughEnd : firstBakeAt,
-      ovenTo: lastBakeEnd,
+      ovenFrom,
+      ovenTo,
       handsOn,
-      pieces: items.reduce((sum, i) => sum + i.r.stueck, 0),
+      pieces: items.reduce((sum, i) => sum + i.pieces, 0),
       trays: trays.length,
-      count: items.length
+      rounds,
+      count: items.length,
+      pause: pauseInfo
     };
+  }
+
+  function deadlineInfo(schedule) {
+    const target = parseClock(plan.deadline);
+    if (target === null || !schedule) return null;
+    const diff = target - schedule.end;
+    const latest = schedule.start + diff;
+    return { target, diff, latest, fits: diff >= 0, reachable: latest >= 0 };
   }
 
   const PLAN_STEP = {
     prep: (event) => ({
       title: `${event.item.r.name} anrühren`,
-      detail: `ca. ${event.dur} Min · ${event.item.r.stueck} Stück${event.item.chill ? ` · danach ${event.item.chill} Min kühlen` : ''}`
+      detail: `ca. ${event.dur} Min · ${event.item.pieces} Stück${event.item.factor !== 1 ? ` · ${event.item.factor}× Menge` : ''}${event.item.chill ? ` · danach ${event.item.chill} Min kühlen` : ''}`
     }),
     oven: (event) => ({
       title: 'Ofen vorheizen',
-      detail: `Ober-/Unterhitze · ca. ${event.dur} Min`
+      detail: `ca. ${event.dur} Min · Temperatur steht beim ersten Blech`
     }),
-    sheet: (event) => ({
-      title: `${event.item.r.name} · Blech ${event.tray} von ${event.trays}`,
-      detail: `Ofen ${clock(event.bakeAt)}–${clock(event.bakeEnd)} · ${event.dur} Min${event.temp ? ` bei ${event.temp} °C` : ''} · ausrollen ca. ${sheetMinutes(event.item.r)} Min davor`
+    sheet: (event) => {
+      const batch = event.batch && event.batch.length
+        ? event.batch
+        : [{ item: event.item, index: event.tray - 1, count: event.trays }];
+      const label = batch.length > 1
+        ? `Bleche ${batch.map((tray) => tray.index + 1).join(' + ')} von ${event.trays}`
+        : `Blech ${event.tray} von ${event.trays}`;
+      const names = [...new Set(batch.map((tray) => tray.item.r.name))].join(' + ');
+      return {
+        title: `${names} · ${label}`,
+        detail: `Ofen ${clock(event.bakeAt)}–${clock(event.bakeEnd)} · ${event.dur} Min${event.temp ? ` bei ${event.temp} °C` : ''} · formen ca. ${event.formMin} Min davor`
+      };
+    },
+    pause: (event) => ({
+      title: 'Pause',
+      detail: `ca. ${event.dur} Min · Tee holen, Hände waschen, durchatmen`
     }),
     cool: (event) => ({
       title: 'Alles aufs Gitter',
@@ -1489,17 +1746,46 @@
     if (pEl.gearNote) pEl.gearNote.textContent = gearSummary();
   }
 
-  function renderPlanChips() {
-    if (!pEl.chips) return;
+  function renderPlanTune() {
+    if (pEl.capacity) pEl.capacity.value = String(plan.capacity);
+    if (pEl.helpers) pEl.helpers.value = String(plan.helpers);
+    if (pEl.tempo) pEl.tempo.value = plan.tempo;
+    if (pEl.pauseAt) pEl.pauseAt.value = plan.pauseAt;
+    if (pEl.pauseMin) pEl.pauseMin.value = String(plan.pauseMin);
+    if (pEl.deadline) pEl.deadline.value = plan.deadline;
+    if (pEl.start) pEl.start.value = plan.start;
+  }
+
+  function renderPlanPresets() {
+    if (!pEl.presets) return;
+    pEl.presets.innerHTML = PLAN_PRESETS.map((preset) => `
+      <button class="plan-preset" type="button" data-preset="${esc(preset.key)}">
+        <b>${esc(preset.label)}</b><small>${esc(preset.hint)}</small>
+      </button>`).join('');
+  }
+
+  function renderPlanMix() {
+    if (!pEl.mix) return;
     const chosen = plan.ids
       .map((id) => RECIPES.find((r) => r.id === id))
       .filter(Boolean);
-    pEl.chips.hidden = chosen.length === 0;
-    pEl.chips.innerHTML = chosen.map((r) => `
-      <button class="plan-chip" type="button" data-plan-remove="${esc(r.id)}"
-        aria-label="${esc(r.name)} aus dem Backplan nehmen">
-        <span>${esc(r.name)}</span>${icons.close}
-      </button>`).join('');
+    pEl.mix.hidden = chosen.length === 0;
+    pEl.mix.innerHTML = chosen.map((r) => {
+      const f = factorOf(r.id);
+      const n = traysFor(r);
+      return `<div class="plan-mix-row">
+        <span class="plan-dot" style="background:${esc(r.dough)}" aria-hidden="true"></span>
+        <span class="plan-mix-name"><b>${esc(r.name)}</b><small>${piecesFor(r)} Stück · ${n} ${n === 1 ? 'Blech' : 'Bleche'}</small></span>
+        <select data-plan-factor="${esc(r.id)}" aria-label="Menge für ${esc(r.name)}">
+          ${FACTORS.map((value) => `<option value="${value}"${value === f ? ' selected' : ''}>${value === 0.5 ? '½×' : value + '×'}</option>`).join('')}
+        </select>
+        <label class="plan-mix-skip" title="Ohne Glasur, Füllung oder Verzieren einplanen">
+          <input type="checkbox" data-plan-skip="${esc(r.id)}"${plan.skip.has(r.id) ? ' checked' : ''}> nur backen
+        </label>
+        <button class="plan-mix-remove" type="button" data-plan-remove="${esc(r.id)}"
+          aria-label="${esc(r.name)} aus dem Backplan nehmen">${icons.close}</button>
+      </div>`;
+    }).join('');
   }
 
   function renderPlanOptions() {
@@ -1510,7 +1796,7 @@
     pEl.options.innerHTML = list.length
       ? list.map((r) => {
         const times = phaseTimes(r);
-        const bits = [`${r.zeit} Min`, `${r.stueck} Stück`, r.level];
+        const bits = [`${times.pieces} Stück`, `${r.zeit + (r.kuehl || 0)} Min`, r.level];
         if (times.chill) bits.push(`+${times.chill} Min kühlen`);
         return `<label class="plan-option">
           <input type="checkbox" data-plan-id="${esc(r.id)}"${plan.ids.includes(r.id) ? ' checked' : ''}>
@@ -1532,35 +1818,77 @@
         <div class="plan-empty">
           <h3>Noch kein Rezept gewählt</h3>
           <p>Wähle links aus, was du backen willst. Der Plan führt dich dann in Stationen durch den Nachmittag: erst alle Teige, dann Blech für Blech aus dem Ofen, zum Schluss alles zusammen glasieren und verpacken.</p>
-          <p class="plan-empty-hint">Beginne mit dem Rezept, das am längsten kühlen muss — in der Kühlzeit sind die anderen Teige schon gerührt.</p>
+          <p class="plan-empty-hint">Stell links ein, wie viele Bleche in deinen Ofen passen, wer mitmacht und wie viel Zeit du hast — der Plan rechnet alles neu. Ein Vorschlag oben füllt die Auswahl mit einem Klick.</p>
         </div>`;
       return;
     }
 
     const total = schedule.end - startMinutes();
+    const dl = deadlineInfo(schedule);
+    const deadlineHTML = dl ? `
+      <p class="plan-deadline ${dl.fits ? 'is-ok' : 'is-late'}">
+        ${dl.fits
+          ? `Ziel ${clock(dl.target)}: passt mit ${durationLabel(dl.diff)} Luft.`
+          : dl.reachable
+            ? `Ziel ${clock(dl.target)}: ${durationLabel(-dl.diff)} zu spät. Spätestens starten um ${clock(dl.latest)}. <button type="button" id="planFitStart">Start anpassen</button>`
+            : `Ziel ${clock(dl.target)} ist mit dieser Auswahl nicht zu halten — nimm ein Rezept heraus oder beginne früher.`}
+      </p>` : '';
+
     pEl.output.innerHTML = `
       <div class="plan-summary">
         <div>
-          <p class="eyebrow"><span></span>Dein Nachmittag</p>
+          <p class="eyebrow"><span></span>Dein Backtag</p>
           <p class="plan-finish">Fertig um <strong>${clock(schedule.end)}</strong></p>
-          <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${schedule.trays} ${schedule.trays === 1 ? 'Blech' : 'Bleche'} · ${durationLabel(total)} inklusive Kühlzeit</p>
+          <p class="plan-sub">${schedule.count} ${schedule.count === 1 ? 'Rezept' : 'Rezepte'} · ${schedule.pieces} Stück · ${schedule.trays} ${schedule.trays === 1 ? 'Blech' : 'Bleche'} in ${schedule.rounds} ${schedule.rounds === 1 ? 'Ofengang' : 'Ofengängen'} · ${durationLabel(total)} inklusive Kühlzeit</p>
           <p class="plan-sub">Davon ca. ${durationLabel(schedule.handsOn)} am Tisch — der Rest backt, kühlt oder ruht.</p>
           <p class="plan-sub">Letztes Blech um ${clock(schedule.ovenTo)} aus dem Ofen · Ofenfenster ${clock(schedule.ovenFrom)}–${clock(schedule.ovenTo)}.</p>
+          <p class="plan-facts">${esc(planSettingsSummary())}${schedule.pause ? ` · Pause um ${clock(schedule.pause.at)}` : ''}</p>
           <p class="plan-gear-line">${esc(gearSummary())}</p>
+          ${deadlineHTML}
         </div>
         <div class="plan-actions">
           <button class="btn btn-primary" type="button" id="planBake">Jetzt losbacken</button>
           <button class="btn btn-ghost" type="button" id="planToList">Alles auf die Einkaufsliste</button>
           <button class="btn btn-ghost" type="button" id="planPrint">${icons.print}Plan drucken</button>
           <button class="btn btn-ghost" type="button" id="planShare">Link kopieren</button>
+          <button class="btn btn-ghost" type="button" id="planIcs">In den Kalender</button>
         </div>
       </div>
       ${total > 300 ? '<p class="plan-warn">Das sind mehr als fünf Stunden Backen. Für einen Nachmittag passen besser zwei bis vier Rezepte — oder du teilst den Plan auf zwei Tage.</p>' : ''}
       <ol class="plan-stages">${schedule.stages.map(planStageHTML).join('')}</ol>
-      <p class="plan-print-foot">Keksdose · Backplan für ${schedule.count} ${schedule.count === 1 ? 'Sorte' : 'Sorten'} · ${new Date().toLocaleDateString('de-DE')} · Arbeitszeiten geschätzt</p>`;
+      <p class="plan-print-foot">Keksdose · Backplan für ${schedule.count} ${schedule.count === 1 ? 'Sorte' : 'Sorten'} · ${esc(planSettingsSummary())} · ${new Date().toLocaleDateString('de-DE')} · Arbeitszeiten geschätzt</p>`;
+  }
+
+  function applyPreset(key) {
+    const preset = PLAN_PRESETS.find((p) => p.key === key);
+    if (!preset) return;
+    plan.ids = preset.ids.filter((id) => RECIPES.some((r) => r.id === id));
+    plan.factors = {};
+    plan.skip = new Set();
+    plan.step = 0;
+    savePlan();
+    renderPlanOptions();
+    renderPlanMix();
+    renderPlan();
+  }
+
+  function tunePlan(mutate, options = false) {
+    mutate();
+    plan.step = 0;
+    savePlan();
+    if (options) renderPlanOptions();
+    renderPlanMix();
+    renderPlan();
   }
 
   if (pEl.options) {
+    renderPlanPresets();
+    renderPlanTune();
+    renderPlanMix();
+    renderPlanGear();
+    renderPlanOptions();
+    renderPlan();
+
     pEl.search.addEventListener('input', () => {
       plan.query = pEl.search.value;
       renderPlanOptions();
@@ -1574,35 +1902,75 @@
         if (!plan.ids.includes(id)) plan.ids.push(id);
       } else {
         plan.ids = plan.ids.filter((x) => x !== id);
+        delete plan.factors[id];
+        plan.skip.delete(id);
       }
       plan.step = 0;
       savePlan();
       updatePlanCount();
-      renderPlanChips();
+      renderPlanMix();
       renderPlan();
     });
 
-    pEl.chips.addEventListener('click', (e) => {
+    pEl.mix.addEventListener('click', (e) => {
       const chip = e.target.closest('[data-plan-remove]');
       if (!chip) return;
       const id = chip.dataset.planRemove;
       plan.ids = plan.ids.filter((x) => x !== id);
+      delete plan.factors[id];
+      plan.skip.delete(id);
       const box = pEl.options.querySelector(`[data-plan-id="${id}"]`);
       if (box) box.checked = false;
       plan.step = 0;
       savePlan();
-      updatePlanCount();
-      renderPlanChips();
+      renderPlanOptions();
+      renderPlanMix();
       renderPlan();
     });
 
+    pEl.mix.addEventListener('change', (e) => {
+      const amount = e.target.closest('[data-plan-factor]');
+      if (amount) {
+        const id = amount.dataset.planFactor;
+        const value = factorValue(amount.value);
+        if (value === 1) delete plan.factors[id];
+        else plan.factors[id] = value;
+        tunePlan(() => {}, true);
+        return;
+      }
+      const skip = e.target.closest('[data-plan-skip]');
+      if (skip) {
+        const id = skip.dataset.planSkip;
+        if (skip.checked) plan.skip.add(id);
+        else plan.skip.delete(id);
+        tunePlan(() => {}, true);
+      }
+    });
+
+    pEl.presets.addEventListener('click', (e) => {
+      const preset = e.target.closest('[data-preset]');
+      if (preset) applyPreset(preset.dataset.preset);
+    });
+
     pEl.start.addEventListener('change', () => {
-      if (!/^\d{2}:\d{2}$/.test(pEl.start.value)) return;
+      if (parseClock(pEl.start.value) === null) return;
       plan.start = pEl.start.value;
       plan.step = 0;
       savePlan();
       renderPlan();
     });
+
+    if (pEl.now) {
+      pEl.now.addEventListener('click', () => {
+        const now = new Date();
+        const mins = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+        plan.start = clock(mins);
+        plan.step = 0;
+        savePlan();
+        renderPlanTune();
+        renderPlan();
+      });
+    }
 
     pEl.gearChips.addEventListener('change', (e) => {
       const box = e.target.closest('[data-gear]');
@@ -1613,29 +1981,90 @@
       savePlan();
       if (pEl.gearNote) pEl.gearNote.textContent = gearSummary();
       renderPlanOptions();
+      renderPlanMix();
+      renderPlan();
+    });
+
+    pEl.capacity.addEventListener('change', () => {
+      tunePlan(() => { plan.capacity = Math.max(1, Math.min(3, Number(pEl.capacity.value) || 1)); });
+    });
+    pEl.helpers.addEventListener('change', () => {
+      tunePlan(() => { plan.helpers = Math.max(1, Math.min(3, Number(pEl.helpers.value) || 1)); });
+    });
+    pEl.tempo.addEventListener('change', () => {
+      tunePlan(() => {
+        plan.tempo = TEMPO.some((t) => t.key === pEl.tempo.value) ? pEl.tempo.value : TEMPO_DEFAULT;
+      });
+    });
+
+    const pauseChanged = (fromTime) => {
+      const at = parseClock(pEl.pauseAt.value);
+      const mins = Math.max(0, Math.min(90, Number(pEl.pauseMin.value) || 0));
+      tunePlan(() => {
+        plan.pauseAt = at === null ? '' : pEl.pauseAt.value;
+        plan.pauseMin = mins;
+        // Eine Uhrzeit ohne Dauer bekommt eine übliche Pause, eine Dauer ohne
+        // Uhrzeit einen Platz am Nachmittag. "keine" bleibt aber "keine".
+        if (fromTime && plan.pauseAt && plan.pauseMin === 0) plan.pauseMin = 20;
+        if (plan.pauseMin > 0 && !plan.pauseAt) plan.pauseAt = '15:00';
+      });
+      renderPlanTune();
+    };
+    pEl.pauseAt.addEventListener('change', () => pauseChanged(true));
+    pEl.pauseMin.addEventListener('change', () => pauseChanged(false));
+
+    pEl.deadline.addEventListener('change', () => {
+      plan.deadline = parseClock(pEl.deadline.value) === null ? '' : pEl.deadline.value;
+      plan.step = 0;
+      savePlan();
+      renderPlan();
+    });
+    pEl.deadlineClear.addEventListener('click', () => {
+      plan.deadline = '';
+      pEl.deadline.value = '';
+      savePlan();
       renderPlan();
     });
 
     pEl.clear.addEventListener('click', () => {
       plan.ids = [];
+      plan.factors = {};
+      plan.skip = new Set();
       plan.step = 0;
       savePlan();
       renderPlanOptions();
-      renderPlanChips();
+      renderPlanMix();
       renderPlan();
     });
 
     pEl.output.addEventListener('click', (e) => {
       if (e.target.closest('#planBake')) { openBake(); return; }
       if (e.target.closest('#planPrint')) { printPlan(); return; }
+      if (e.target.closest('#planIcs')) { downloadPlan(); return; }
 
       const share = e.target.closest('#planShare');
       if (share) { copyPlanLink(share); return; }
 
+      const fit = e.target.closest('#planFitStart');
+      if (fit) {
+        const info = deadlineInfo(planSchedule(plan.ids));
+        if (info && info.reachable) {
+          plan.start = clock(info.latest);
+          plan.step = 0;
+          savePlan();
+          renderPlanTune();
+          renderPlan();
+        }
+        return;
+      }
+
       const btn = e.target.closest('#planToList');
       if (!btn) return;
       plan.ids.forEach((id) => {
-        if (!listState.items.some((it) => it.id === id)) listState.items.push({ id, factor: 1 });
+        const factor = factorOf(id);
+        const existing = listState.items.find((it) => it.id === id);
+        if (existing) existing.factor = factor;
+        else listState.items.push({ id, factor });
       });
       saveList();
       renderList();
@@ -1697,6 +2126,22 @@
     return plan.gear.has('convection') ? temp - 20 : temp;
   }
 
+  // Formen je Rezept — im Plan und im Backmodus derselbe Wortlaut.
+  function formingHint(r) {
+    if (r.ausstecher) {
+      return `Teig zwischen zwei Lagen Backpapier ${r.shape === 'star' ? '8 mm' : '4–6 mm'} dick ausrollen und mit dem ${r.ausstecher.d}-cm-Ausstecher ausstechen.`;
+    }
+    if (r.shape === 'crescent') return 'Teig zu Rollen formen, in 1 cm dicke Scheiben schneiden und jede Scheibe zum Hörnchen rollen.';
+    return 'Teig ausrollen, Plätzchen formen und mit 2 cm Abstand aufs Blech legen.';
+  }
+
+  function sheetLabel(event) {
+    if (event.batch && event.batch.length > 1) {
+      return `Bleche ${event.batch.map((tray) => tray.index + 1).join(' + ')} von ${event.trays}`;
+    }
+    return `Blech ${event.tray} von ${event.trays}`;
+  }
+
   function bakeStep(event, schedule) {
     const r = event.item ? event.item.r : null;
 
@@ -1710,6 +2155,7 @@
       if (r.ausstecher && !plan.gear.has('cutters')) hints.push(`Für ${r.name} brauchst du einen Ausstecher mit ${r.ausstecher.d} cm.`);
       if (r.id === 'spritzgebaeck' && !plan.gear.has('piping')) hints.push('Ohne Spritzbeutel: den Teig zu Rollen formen und in Scheiben schneiden.');
       if (event.item.chill) hints.push(`Abgedeckt ${event.item.chill} Min kalt stellen — fertig um ${clock(event.item.ready)}. In der Zeit rührst du den nächsten Teig.`);
+      if (event.item.factor !== 1) hints.push(`${event.item.factor}× Menge: alle Zutaten entsprechend abwiegen — die Bleche und Stückzahlen sind im Plan schon eingerechnet.`);
 
       return {
         phase: 'Teig anrühren',
@@ -1737,12 +2183,22 @@
       };
     }
 
+    if (event.type === 'pause') {
+      return {
+        phase: 'Pause',
+        title: `Pause · ${event.dur} Min`,
+        meta: `ab ${clock(event.at)} · Tee, Hände waschen, durchatmen`,
+        body: `<p class="bake-text">Der Plan gönnt dir eine Pause. Deck die Schüsseln ab, stell die Bleche zusammen und mach dir einen Tee — danach geht es an der markierten Stelle weiter.</p>
+          <p class="bake-text">Der Timer läuft auf Wunsch mit: ${event.dur} Minuten, dann geht es weiter.</p>`
+      };
+    }
+
     if (event.type === 'sheet') {
-      const forming = r.ausstecher
-        ? `Teig zwischen zwei Lagen Backpapier ${r.shape === 'star' ? '8 mm' : '4–6 mm'} dick ausrollen und mit dem ${r.ausstecher.d}-cm-Ausstecher ausstechen.`
-        : r.shape === 'crescent'
-          ? 'Teig zu Rollen formen, in 1 cm dicke Scheiben schneiden und jede Scheibe zum Hörnchen rollen.'
-          : 'Teig ausrollen, Plätzchen formen und mit 2 cm Abstand aufs Blech legen.';
+      const batch = event.batch && event.batch.length
+        ? event.batch
+        : [{ item: { r }, index: event.tray - 1, count: event.trays }];
+      const names = [...new Set(batch.map((tray) => tray.item.r.name))].join(' + ');
+      const forming = batch.map((tray) => formingHint(tray.item.r)).join(' ');
       const steps = [
         forming,
         `Blech auf mittlerer Schiene: ${event.temp ? `${event.temp} °C` : 'die Temperatur aus dem Rezept'}, ${event.dur} Min. Timer starten — von ${clock(event.bakeAt)} bis ${clock(event.bakeEnd)}.`,
@@ -1754,11 +2210,12 @@
       if (event.retemp) hints.push(`Der Ofen steht noch auf ${event.ovenWas} °C — vor diesem Blech auf ${event.temp} °C umstellen (${event.retempMin} Min eingeplant).`);
       if (event.wait > 0) hints.push(`Der Ofen ist noch belegt: Das Blech steht bereit und kommt ${event.wait} Min später hinein — in der Zeit kannst du schon aufräumen.`);
       if (event.next) hints.push('Wer nur ein Blech hat: Das heiße Blech kurz abkühlen lassen, sonst backt der Teig schon beim Belegen an.');
+      if (batch.length > 1) hints.push('Beide Bleche kommen gleichzeitig hinein — nach der Hälfte der Zeit einmal tauschen, damit sie gleichmäßig backen.');
       if (plan.gear.has('convection')) hints.push('Umluft trocknet stärker: lieber eine Minute früher herausnehmen und auf dem Blech nachziehen lassen.');
       return {
         phase: 'Blech backen',
-        title: `${r.name} · Blech ${event.tray} von ${event.trays}`,
-        meta: `ausrollen ca. ${sheetMinutes(r)} Min · Ofen ${clock(event.bakeAt)}–${clock(event.bakeEnd)}${event.temp ? ` · ${event.temp} °C` : ''}`,
+        title: `${names} · ${sheetLabel(event)}`,
+        meta: `formen ca. ${event.formMin} Min · Ofen ${clock(event.bakeAt)}–${clock(event.bakeEnd)}${event.temp ? ` · ${event.temp} °C` : ''}`,
         body: `<ol class="bake-steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
           ${hints.length ? `<ul class="bake-hints">${hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}`
       };
@@ -2449,10 +2906,10 @@
 
   loadPlan();
   const planFromLink = applyPlanHash();
-  if (pEl.start) pEl.start.value = plan.start;
+  renderPlanTune();
   renderPlanGear();
   renderPlanOptions();
-  renderPlanChips();
+  renderPlanMix();
   renderPlan();
   if (planFromLink) savePlan();
 
