@@ -1385,6 +1385,8 @@ a { color: inherit; }
 .plan-summary .btn.is-added { background: #2f6b45; border-color: #2f6b45; color: #f7fff9; }
 .plan-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .plan-actions .btn-primary { font-size: 13.5px; }
+.plan-actions .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.plan-actions .btn.is-added { background: #2f6b45; border-color: #2f6b45; color: #f7fff9; }
 .plan-gear-line { font-size: 11.5px; color: var(--ink-mute); margin-top: 4px; }
 
 .plan-stages { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 18px; }
@@ -1626,6 +1628,7 @@ a { color: inherit; }
 .plan-step:first-child::before { top: 12px; }
 .plan-step:last-child::before { bottom: auto; height: 12px; }
 .plan-time { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-mute); padding-top: 1px; }
+.plan-box { display: none; }
 .plan-node {
   position: relative;
   z-index: 1;
@@ -1643,6 +1646,7 @@ a { color: inherit; }
 .plan-copy b { font-weight: 600; font-size: 14px; }
 .plan-copy small { display: block; color: var(--ink-mute); font-size: 12px; margin-top: 1px; }
 .plan-note { margin-top: 14px; max-width: 78ch; font-size: 12px; color: var(--ink-mute); }
+.plan-print-foot { display: none; }
 .plan-warn {
   margin-top: 14px;
   padding: 9px 13px;
@@ -1789,4 +1793,81 @@ a { color: inherit; }
 @media print {
   .plan, .pantry-drawer { display: none !important; }
   .bake { display: none !important; }
+}
+
+/* Backplan als Checkliste fürs Papier: nur die Stationen, mit Kästchen. */
+@media print {
+  body.print-plan main > section:not(#backplan),
+  body.print-plan .site-header,
+  body.print-plan .site-footer,
+  body.print-plan .skip-link,
+  body.print-plan .plan-picker,
+  body.print-plan .plan-actions,
+  body.print-plan .plan-warn,
+  body.print-plan .plan-note { display: none !important; }
+
+  body.print-plan .plan {
+    display: block !important;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+  body.print-plan #backplan .eyebrow,
+  body.print-plan #backplan .section-lede { display: none !important; }
+  body.print-plan #backplan .section-head { margin-bottom: 8px; }
+  body.print-plan .plan-card {
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+    overflow: visible;
+  }
+  body.print-plan .plan-output { min-height: 0; padding: 0; }
+  body.print-plan .plan-summary {
+    display: block;
+    padding: 0 0 10px;
+    border-bottom: 1px solid #c9c1b5;
+  }
+  body.print-plan .plan-finish { font-size: 19px; margin-top: 4px; }
+  body.print-plan .plan-sub,
+  body.print-plan .plan-gear-line { font-size: 10.5px; color: #5f4c3d; }
+  body.print-plan .plan-stages { display: block; margin-top: 10px; }
+  body.print-plan .plan-stage { padding: 10px 0 6px; }
+  body.print-plan .plan-stage + .plan-stage {
+    padding-top: 10px;
+    border-top: 1px solid #c9c1b5;
+  }
+  body.print-plan .plan-stage-head { break-after: avoid; }
+  body.print-plan .plan-stage-hint { break-after: avoid; margin-left: 0; font-size: 10.5px; }
+  body.print-plan .plan-stage-time { font-size: 10px; background: none; padding: 0; }
+  body.print-plan .plan-steps { margin-top: 4px; }
+  body.print-plan .plan-step {
+    grid-template-columns: 14px 44px minmax(0, 1fr);
+    gap: 8px;
+    padding: 5px 0;
+    break-inside: avoid;
+  }
+  body.print-plan .plan-step::before,
+  body.print-plan .plan-node { display: none; }
+  body.print-plan .plan-box {
+    display: block;
+    width: 11px;
+    height: 11px;
+    margin-top: 4px;
+    border: 1px solid #6b5a4a;
+    border-radius: 2px;
+  }
+  body.print-plan .plan-time { font-size: 11px; color: #5f4c3d; }
+  body.print-plan .plan-copy b { font-size: 12.5px; }
+  body.print-plan .plan-copy small { font-size: 10.5px; }
+  body.print-plan .plan-while { font-size: 10px; padding-left: 7px; color: #5f4c3d; border-left-color: #c9c1b5; }
+  body.print-plan .plan-print-foot {
+    display: block;
+    margin-top: 12px;
+    padding-top: 6px;
+    border-top: 1px solid #ddd;
+    font-size: 9.5px;
+    color: #6b5a4a;
+  }
 }

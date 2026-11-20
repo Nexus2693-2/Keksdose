@@ -547,6 +547,7 @@
     }, 300);
     if (location.hash.startsWith('#rezept/')) {
       history.replaceState(null, '', location.pathname + location.search);
+      syncPlanHash();
     }
     if (lastFocused && document.contains(lastFocused)) lastFocused.focus({ preventScroll: true });
   }
@@ -1122,6 +1123,88 @@
         step: plan.step
       }));
     } catch (err) { /* Sitzung genügt */ }
+    syncPlanHash();
+  }
+
+  // Der Plan steckt auch in der Adresse: so lässt er sich weitergeben und
+  // beim nächsten Besuch aus dem Link wiederherstellen.
+  const PLAN_HASH = /^#plan\?(.*)$/;
+
+  function planLink() {
+    const ids = plan.ids.map(encodeURIComponent).join(',');
+    const gear = GEAR.filter((g) => plan.gear.has(g.key)).map((g) => g.key).join(',');
+    return `${location.origin}${location.pathname}${location.search}#plan?ids=${ids}&start=${encodeURIComponent(plan.start)}&gear=${gear}`;
+  }
+
+  function syncPlanHash() {
+    if (location.hash.startsWith('#rezept/')) return;
+    if (!plan.ids.length) {
+      if (PLAN_HASH.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+      return;
+    }
+    history.replaceState(null, '', planLink());
+  }
+
+  function applyPlanHash() {
+    const hit = location.hash.match(PLAN_HASH);
+    if (!hit) return false;
+    const params = new URLSearchParams(hit[1]);
+    const ids = (params.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const valid = [...new Set(ids.filter((id) => RECIPES.some((r) => r.id === id)))];
+    if (!valid.length) return false;
+    plan.ids = valid;
+    const start = params.get('start') || '';
+    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(start)) plan.start = start;
+    if (params.has('gear')) {
+      const keys = (params.get('gear') || '').split(',').map((s) => s.trim()).filter(Boolean);
+      plan.gear = new Set(keys.filter((k) => GEAR.some((g) => g.key === k)));
+    }
+    plan.step = 0;
+    return true;
+  }
+
+  function printPlan() {
+    if (!pEl.output || !planSchedule(plan.ids)) return;
+    const body = el.body;
+    const cleanup = () => body.classList.remove('print-plan');
+    body.classList.add('print-plan');
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.print();
+    window.setTimeout(cleanup, 1200);
+  }
+
+  function copyPlanLink(btn) {
+    const link = planLink();
+    const done = (ok) => {
+      const label = btn.textContent;
+      btn.textContent = ok ? 'Link kopiert' : 'Link in der Adresse';
+      btn.classList.toggle('is-added', ok);
+      window.setTimeout(() => {
+        btn.textContent = label;
+        btn.classList.remove('is-added');
+      }, 2400);
+      if (!ok) window.prompt('Plan-Link kopieren:', link);
+    };
+
+    const fallback = () => {
+      const field = document.createElement('textarea');
+      field.value = link;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      el.body.appendChild(field);
+      field.select();
+      let ok = false;
+      try { ok = typeof document.execCommand === 'function' && document.execCommand('copy'); } catch (err) { ok = false; }
+      field.remove();
+      done(ok);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(() => done(true), fallback);
+    } else {
+      fallback();
+    }
   }
 
   const clock = (mins) => {
@@ -1364,6 +1447,7 @@
       ? `<em class="plan-while">Ofen läuft: in der Zeit Blech ${event.next.tray} (${esc(event.next.name)}) vorbereiten.</em>`
       : '';
     return `<li class="plan-step plan-${event.type}">
+      <span class="plan-box" aria-hidden="true"></span>
       <span class="plan-time">${clock(event.at)}</span>
       <span class="plan-node" aria-hidden="true"></span>
       <span class="plan-copy">
@@ -1467,10 +1551,13 @@
         <div class="plan-actions">
           <button class="btn btn-primary" type="button" id="planBake">Jetzt losbacken</button>
           <button class="btn btn-ghost" type="button" id="planToList">Alles auf die Einkaufsliste</button>
+          <button class="btn btn-ghost" type="button" id="planPrint">${icons.print}Plan drucken</button>
+          <button class="btn btn-ghost" type="button" id="planShare">Link kopieren</button>
         </div>
       </div>
       ${total > 300 ? '<p class="plan-warn">Das sind mehr als fünf Stunden Backen. Für einen Nachmittag passen besser zwei bis vier Rezepte — oder du teilst den Plan auf zwei Tage.</p>' : ''}
-      <ol class="plan-stages">${schedule.stages.map(planStageHTML).join('')}</ol>`;
+      <ol class="plan-stages">${schedule.stages.map(planStageHTML).join('')}</ol>
+      <p class="plan-print-foot">Keksdose · Backplan für ${schedule.count} ${schedule.count === 1 ? 'Sorte' : 'Sorten'} · ${new Date().toLocaleDateString('de-DE')} · Arbeitszeiten geschätzt</p>`;
   }
 
   if (pEl.options) {
@@ -1540,6 +1627,10 @@
 
     pEl.output.addEventListener('click', (e) => {
       if (e.target.closest('#planBake')) { openBake(); return; }
+      if (e.target.closest('#planPrint')) { printPlan(); return; }
+
+      const share = e.target.closest('#planShare');
+      if (share) { copyPlanLink(share); return; }
 
       const btn = e.target.closest('#planToList');
       if (!btn) return;
@@ -2357,14 +2448,23 @@
   renderHeroArt();
 
   loadPlan();
+  const planFromLink = applyPlanHash();
   if (pEl.start) pEl.start.value = plan.start;
   renderPlanGear();
   renderPlanOptions();
   renderPlanChips();
   renderPlan();
+  if (planFromLink) savePlan();
 
   loadPantry();
 
   const initial = location.hash.match(/^#rezept\/(.+)$/);
   if (initial) openRecipe(decodeURIComponent(initial[1]), false);
+
+  // Offline-Hülle: nach dem ersten Besuch startet die Seite auch ohne Netz.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline weiter */ });
+    });
+  }
 })();
