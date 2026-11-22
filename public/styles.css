@@ -2318,6 +2318,10 @@ body.is-scrolled .site-header {
   padding: 6px 12px;
   background: rgba(255, 253, 248, .7);
 }
+.news-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+.news-fineprint { margin: 10px 0 0; font-size: 12px; color: var(--ink-mute); }
+.is-app .app-download,
+.is-app .news-fineprint { display: none; }
 .news-more { margin: 16px 0 0; font-size: 13px; color: var(--ink-mute); }
 @media print {
   .news { display: none !important; }

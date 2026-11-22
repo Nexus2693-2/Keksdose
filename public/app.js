@@ -2,6 +2,11 @@
 (() => {
   'use strict';
 
+  // In der Android-App (eigener User-Agent) entfällt der Download-Hinweis,
+  // und der Service Worker bleibt aus: Die Dateien liegen ohnehin im APK.
+  const IS_APP = /KeksdoseApp/.test(navigator.userAgent);
+  if (IS_APP) document.documentElement.classList.add('is-app');
+
   const RECIPES = window.RECIPES || [];
   const TAG_ORDER = ['Klassiker', 'Schokolade', 'Nüsse', 'Fruchtig', 'Vegan', 'Schnell', 'Waffeln', 'Gebäck'];
   const CUTTER_MIN = 1;
@@ -3387,7 +3392,7 @@
   if (initial) openRecipe(decodeURIComponent(initial[1]), false);
 
   // Offline-Hülle: nach dem ersten Besuch startet die Seite auch ohne Netz.
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !IS_APP) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline weiter */ });
     });

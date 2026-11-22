@@ -28,7 +28,7 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - **Finder mit zehn Fragen:** Gebäcksorte, Geschmack, Textur, Zeit, Anlass, Ausschlüsse, Aufwand, Menge, Preis und „kenn ich schon“. Vegane, nuss- und schokofreie Wünsche sind harte Ausschlüsse; die drei besten Treffer bekommen zwei Inspirationsvorschläge aus einer anderen Gebäcksorte an die Seite. Jedes Rezept braucht dafür Merkmale in `window.RECIPE_TRAITS`.
 - **Vorratscheck („Was hab ich da?“):** Zutaten abhaken und auf Wunsch die vorhandene Menge eintragen (g, ml oder Stück). Der Check vergleicht mit dem Rezeptbedarf und meldet „zu wenig Mehl (250 g nötig)“ statt nur „fehlt“; ohne Mengenangabe gilt eine Zutat wie bisher als vorhanden.
 - **Tipps:** Jedes Rezept endet mit „Gut zu wissen“ — eine konkrete Handlung samt Begründung (Temperatur, Timing, Technik, Lagerung), keine allgemeinen Floskeln. Bei Rezeptänderungen prüft der Test, dass jeder Tipp vorhanden, ausreichend ausführlich und einzigartig ist.
-- **Ankündigungen (#ankuendigungen):** eigener Abschnitt mit Navigationseintrag „Ankündigungen“. Er startet mit der App-Ankündigung („Die Keksdose-App kommt“, Etikett „In Arbeit“) und ist als Liste angelegt, in die weitere Neuigkeiten einfach als `.news-item` dazukommen. In der Druckansicht ausgeblendet.
+- **Ankündigungen (#ankuendigungen):** eigener Abschnitt mit Navigationseintrag „Ankündigungen“. Er startet mit der App-Ankündigung („Die Keksdose-App ist da“, Etikett „Android · Version 1.0“, Download-Button auf das GitHub-Release) und ist als Liste angelegt, in die weitere Neuigkeiten einfach als `.news-item` dazukommen. In der Druckansicht ausgeblendet.
 
 ## Bewegung und Bedienung
 
@@ -55,6 +55,16 @@ Die folgenden Regler gehören zum **erweiterten Modus**; ihre Werte bleiben beim
 - **nur backen:** lässt Glasur, Füllung oder Verzieren für eine Sorte aus dem Plan.
 - **Vorschläge:** Omas Klassiker, Schnelle Runde und Schoko & Nuss füllen die Auswahl mit einem Klick.
 - **Jetzt:** setzt den Start auf die nächste Fünf-Minuten-Marke der aktuellen Uhrzeit.
+
+## Android-App
+
+Die Website steckt als schlanke Offline-App in `android/`: ein WebView, der alle Dateien aus `public/` direkt aus dem APK ausliefert (unter der eigenen Adresse `https://appassets.androidplatform.net`, ohne `INTERNET`-Berechtigung). Einkaufsliste, Backplan und Vorratscheck landen im lokalen Speicher der App.
+
+- **Bauen:** `./android/build.sh` – braucht JDK 17 sowie Android SDK mit `platforms/android-34` und `build-tools/34.0.0` (SDK über `ANDROID_HOME`/`ANDROID_SDK_ROOT` oder `$HOME/opt/android-sdk`). Ergebnis: `android/dist/Keksdose-<Version>.apk`. Kein Gradle, nur `aapt2`, `javac`, `d8`, `zipalign`, `apksigner`.
+- **Version:** `android:versionCode`/`android:versionName` in `android/AndroidManifest.xml`, überschreibbar mit `VERSION_NAME`/`VERSION_CODE` beim Build.
+- **Signatur:** Standard-Debug-Schlüssel (`$HOME/.android/debug.keystore`), damit das APK direkt installierbar ist. Für Play Store oder verlässliche Updates einen eigenen Release-Key setzen (`KEYSTORE`, `KS_PASS`, `KEY_ALIAS`, `KEY_PASS`) und sicher aufbewahren – ohne denselben Key lässt sich eine Installation nicht aktualisieren.
+- **App-Erkennung:** Die App hängt `KeksdoseApp/1.0` an den User-Agent. Dadurch blendet die Seite den APK-Download aus und registriert keinen Service Worker, weil die Dateien ohnehin im APK liegen.
+- **Assets:** Beim Linken wird `public/` direkt als Asset-Ordner eingebunden. Nach Änderungen an der Website also das APK neu bauen und ein neues Release anlegen.
 
 ## Lokal ansehen
 
