@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'android/release/**'
+      - 'public/downloads/**'
       - '.github/workflows/release-apk.yml'
   workflow_dispatch:
 
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Prüfsumme kontrollieren
-        run: cd android/release && sha256sum -c SHA256SUMS
+        run: cd public/downloads && sha256sum -c SHA256SUMS
 
       - name: APK an das Release hängen
         env:
@@ -31,5 +31,5 @@ jobs:
             gh release create "$TAG" --title "Keksdose 1.0.0 – Android-App" \
               --notes "Android-App der Keksdose."
           fi
-          gh release upload "$TAG" android/release/Keksdose-1.0.0.apk --clobber
+          gh release upload "$TAG" public/downloads/Keksdose-1.0.0.apk --clobber
           gh release view "$TAG" --json assets --jq '.assets[].name'

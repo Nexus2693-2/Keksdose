@@ -65,7 +65,8 @@ Die Website steckt als schlanke Offline-App in `android/`: ein WebView, der alle
 - **Signatur:** Standard-Debug-Schlüssel (`$HOME/.android/debug.keystore`), damit das APK direkt installierbar ist. Für Play Store oder verlässliche Updates einen eigenen Release-Key setzen (`KEYSTORE`, `KS_PASS`, `KEY_ALIAS`, `KEY_PASS`) und sicher aufbewahren – ohne denselben Key lässt sich eine Installation nicht aktualisieren.
 - **App-Erkennung:** Die App hängt `KeksdoseApp/1.0` an den User-Agent. Dadurch blendet die Seite den APK-Download aus und registriert keinen Service Worker, weil die Dateien ohnehin im APK liegen.
 - **Assets:** Beim Linken wird `public/` direkt als Asset-Ordner eingebunden. Nach Änderungen an der Website also das APK neu bauen und ein neues Release anlegen.
-- **Release:** Die geprüfte APK liegt samt `SHA256SUMS` unter `android/release/`. Der Workflow `.github/workflows/release-apk.yml` prüft die Prüfsumme und hängt die Datei an das Release `v1.0.0`; er läuft bei Änderungen in diesem Ordner und lässt sich manuell starten.
+- **Download:** Die geprüfte APK liegt samt `SHA256SUMS` unter `public/downloads/` und wird mit der Website veröffentlicht; der Button in den Ankündigungen lädt sie direkt von dort. Der Build lässt diesen Ordner aus, damit die APK nicht in sich selbst landet.
+- **Release:** Der Workflow `.github/workflows/release-apk.yml` prüft die Prüfsumme und hängt die Datei an das Release `v1.0.0`; er läuft bei Änderungen in `public/downloads/` und lässt sich manuell starten. Das Repository ist privat – der öffentliche Weg zur APK ist deshalb die Website.
 
 ## Lokal ansehen
 

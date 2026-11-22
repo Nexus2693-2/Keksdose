@@ -32,12 +32,19 @@ mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex" "$DIST"
 echo "==> Ressourcen kompilieren"
 "$BUILD_TOOLS/aapt2" compile --dir res -o "$OUT/res.zip"
 
-echo "==> APK-Rahmen linken (Assets: ../public)"
+# Website als Assets übernehmen, aber den Download-Ordner auslassen:
+# Dort liegt die APK selbst, die nicht im APK landen soll.
+STAGE="$OUT/site"
+mkdir -p "$STAGE"
+cp -a ../public/. "$STAGE"/
+rm -rf "$STAGE/downloads"
+
+echo "==> APK-Rahmen linken (Assets: public ohne downloads)"
 "$BUILD_TOOLS/aapt2" link \
   -o "$OUT/base.apk" \
   -I "$JAR" \
   --manifest AndroidManifest.xml \
-  -A ../public \
+  -A "$STAGE" \
   --java "$OUT/gen" \
   --min-sdk-version 24 \
   --target-sdk-version 34 \

@@ -1,4 +1,3 @@
 build/
 dist/
 *.apk
-!release/*.apk
