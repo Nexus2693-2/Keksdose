@@ -12,6 +12,7 @@ Jede Änderung wird an drei Stellen nachgezogen: Commit auf `main`, Deploy zu Ne
 | 20.11.2026 | Backplan als Checkliste drucken, Plan-Link zum Teilen, Offline-Hülle mit Manifest und Icons (PWA), Manifest-Content-Type auf Netlify korrigiert | `91eb994` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 20.11.2026 | Backplan individualisierbar: Bleche gleichzeitig, Team, Tempo, Pause, Zielzeit, Menge je Sorte, „nur backen“, Auswahl-Vorschläge, Kalender-Export, Mengen in der Einkaufsliste | `d650cf8` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 22.11.2026 | Weichere Bedienung: gestaffeltes Einblenden, Keks- und Kartenbewegung, Drawer- und Backmodus-Übergänge, aktive Navigation, Toast-Bestätigung, `prefers-reduced-motion` | `a2e4a27` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
+| 22.11.2026 | Zwei Backmodi: einfach (eine Sorte, ein Blech nach dem anderen, ohne Team/Pause/Zielzeit) und erweitert (mehrere Sorten parallel); Modus im Plan-Link und als Etikett im Backmodus | `c173e0e` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 
 ## Hinweise
 
