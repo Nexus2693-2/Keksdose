@@ -28,7 +28,15 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - **Navigation:** Der gelesene Abschnitt wird in der Kopfzeile markiert; Anker landen wegen `scroll-margin-top` nicht unter der klebenden Kopfzeile, und Sprungmarken haben einen sichtbaren Tastaturfokus.
 - **Ruhige Technik:** Alle Effekte laufen über `transform`, `translate`, `scale` und `opacity`, also ohne Layout-Arbeit pro Bild. Es gibt keinen Scroll-Listener: Ein `IntersectionObserver` übernimmt Einblenden, Kopfzeilen-Tiefe und Abschnittsmarkierung. `prefers-reduced-motion` schaltet alle Animationen ab.
 
+## Zwei Backmodi
+
+- **Einfach:** ein Rezept, ein Blech nach dem anderen, allein am Tisch und gemütliches Tempo. Team, Pause, Zielzeit, Vorschläge und die Feinschliff-Regler sind ausgeblendet; die Zeiten sind bewusst mit Luft gerechnet. Eine neue Rezeptwahl ersetzt die alte, und der Plan belegt das nächste Blech erst, wenn der Ofen wieder frei ist.
+- **Erweitert:** das bisherige Parallelrechnen mit mehreren Sorten, Blechen im selben Ofengang, Team, Tempo, Pause und Zielzeit.
+- Der Modus steckt im Plan-Link (`#plan?…&modus=einfach`), wird lokal gespeichert und steht als Etikett im Backmodus.
+
 ## Backplan einstellen
+
+Die folgenden Regler gehören zum **erweiterten Modus**; ihre Werte bleiben beim Wechsel auf „Einfach“ gespeichert.
 
 - **Bleche gleichzeitig** (1–3): Bleche mit derselben Temperatur backen in einem Rutsch; der Plan fasst sie zu Ofengängen zusammen und rechnet zwei Minuten mehr Backzeit ein.
 - **Wer backt mit?** (1–3 Personen) und **Tempo** (gemütlich/normal/zügig): verkürzen Rühren, Formen und Fertigstellen. Rühren lässt sich weniger beschleunigen als das Belegen von Blechen.

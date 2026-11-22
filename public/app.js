@@ -1133,8 +1133,21 @@
     { key: 'schoko', label: 'Schoko & Nuss', hint: 'Drei Sorten für Naschkatzen', ids: ['spritzgebaeck', 'brownie-cookies', 'schoko-nuss-cookies'] }
   ];
 
+  // Zwei Wege durch den Backtag: eine Sorte in Ruhe oder mehrere parallel.
+  const PLAN_MODES = {
+    einfach: {
+      label: 'Einfach',
+      note: 'Einfach: ein Rezept, ein Blech im Ofen, gemütliches Tempo. Team, Pause und Zielzeit sind hier bewusst ausgeblendet — die Zeiten sind mit Luft gerechnet.'
+    },
+    erweitert: {
+      label: 'Erweitert',
+      note: 'Erweitert: mehrere Sorten parallel, Bleche zusammen im Ofen, dazu Team, Tempo, Pause und Zielzeit.'
+    }
+  };
+
   const plan = {
     ids: [],
+    mode: 'erweitert',   // 'einfach' = eine Sorte, Blech für Blech
     start: '14:00',
     query: '',
     gear: new Set(GEAR_DEFAULT),
@@ -1167,6 +1180,9 @@
     deadline: document.getElementById('planDeadline'),
     deadlineClear: document.getElementById('planDeadlineClear'),
     presets: document.getElementById('planPresets'),
+    modes: document.getElementById('planModes'),
+    modeNote: document.getElementById('planModeNote'),
+    tune: document.getElementById('planTune'),
     now: document.getElementById('planNow')
   };
 
@@ -1181,7 +1197,12 @@
   };
   const factorOf = (id) => factorValue(plan.factors[id]);
 
-  const tempoEntry = () => TEMPO.find((t) => t.key === plan.tempo) || TEMPO[1];
+  const isSimple = () => plan.mode === 'einfach';
+
+  // Der einfache Modus rechnet mit einem Blech, allein am Tisch und gemütlichem
+  // Tempo. Die Regler bleiben für den erweiterten Modus gespeichert.
+  const tempoEntry = () => TEMPO.find((t) => t.key === (isSimple() ? 'gemuetlich' : plan.tempo)) || TEMPO[1];
+  const effectiveCapacity = () => (isSimple() ? 1 : Math.max(1, Math.min(3, Number(plan.capacity) || 1)));
 
   function loadPlan() {
     try {
@@ -1193,6 +1214,7 @@
       if (Number.isInteger(raw.capacity)) plan.capacity = Math.max(1, Math.min(3, raw.capacity));
       if (Number.isInteger(raw.helpers)) plan.helpers = Math.max(1, Math.min(3, raw.helpers));
       if (TEMPO.some((t) => t.key === raw.tempo)) plan.tempo = raw.tempo;
+      if (raw.mode === 'einfach' || raw.mode === 'erweitert') plan.mode = raw.mode;
       if (typeof raw.pauseAt === 'string' && parseClock(raw.pauseAt) !== null) plan.pauseAt = raw.pauseAt;
       if (Number.isFinite(raw.pauseMin)) plan.pauseMin = Math.max(0, Math.min(90, Math.round(raw.pauseMin)));
       if (typeof raw.deadline === 'string' && parseClock(raw.deadline) !== null) plan.deadline = raw.deadline;
@@ -1210,6 +1232,7 @@
     try {
       localStorage.setItem(PLAN_KEY, JSON.stringify({
         ids: plan.ids,
+        mode: plan.mode,
         start: plan.start,
         gear: [...plan.gear],
         step: plan.step,
@@ -1234,11 +1257,16 @@
     const ids = plan.ids.map(encodeURIComponent).join(',');
     const gear = GEAR.filter((g) => plan.gear.has(g.key)).map((g) => g.key).join(',');
     const parts = [`ids=${ids}`, `start=${encodeURIComponent(plan.start)}`, `gear=${gear}`];
-    if (plan.capacity !== 1) parts.push(`cap=${plan.capacity}`);
-    if (plan.helpers !== 1) parts.push(`team=${plan.helpers}`);
-    if (plan.tempo !== TEMPO_DEFAULT) parts.push(`tempo=${encodeURIComponent(plan.tempo)}`);
-    if (plan.pauseMin > 0 && plan.pauseAt) parts.push(`pause=${encodeURIComponent(plan.pauseAt)},${plan.pauseMin}`);
-    if (plan.deadline) parts.push(`ziel=${encodeURIComponent(plan.deadline)}`);
+    // Im einfachen Modus stecken nur Sorte, Start und Ausstattung im Link.
+    if (isSimple()) {
+      parts.push('modus=einfach');
+    } else {
+      if (plan.capacity !== 1) parts.push(`cap=${plan.capacity}`);
+      if (plan.helpers !== 1) parts.push(`team=${plan.helpers}`);
+      if (plan.tempo !== TEMPO_DEFAULT) parts.push(`tempo=${encodeURIComponent(plan.tempo)}`);
+      if (plan.pauseMin > 0 && plan.pauseAt) parts.push(`pause=${encodeURIComponent(plan.pauseAt)},${plan.pauseMin}`);
+      if (plan.deadline) parts.push(`ziel=${encodeURIComponent(plan.deadline)}`);
+    }
     const amounts = plan.ids
       .filter((id) => factorOf(id) !== 1)
       .map((id) => `${encodeURIComponent(id)}:${factorOf(id)}`);
@@ -1264,7 +1292,8 @@
     const ids = (params.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean);
     const valid = [...new Set(ids.filter((id) => RECIPES.some((r) => r.id === id)))];
     if (!valid.length) return false;
-    plan.ids = valid;
+    plan.mode = params.get('modus') === 'einfach' ? 'einfach' : 'erweitert';
+    plan.ids = isSimple() ? valid.slice(0, 1) : valid;
     const start = params.get('start') || '';
     if (parseClock(start) !== null) plan.start = start;
     if (params.has('gear')) {
@@ -1458,6 +1487,7 @@
   }
 
   function planSettingsSummary() {
+    if (isSimple()) return 'einfacher Modus · ein Rezept · ein Blech im Ofen · gemütlich';
     const bits = [
       plan.capacity === 1 ? 'ein Blech im Ofen' : `${plan.capacity} Bleche gleichzeitig`,
       plan.helpers === 1 ? 'allein am Tisch' : `zu ${plan.helpers} am Tisch`,
@@ -1513,7 +1543,7 @@
     if (!items.length) return null;
 
     const startAt = startMinutes();
-    const capacity = Math.max(1, Math.min(3, Number(plan.capacity) || 1));
+    const capacity = effectiveCapacity();
     const events = [];
 
     // 1) Alle Teige hintereinander anrühren, der mit der längsten Kühlzeit zuerst.
@@ -1596,7 +1626,9 @@
         next: next ? { tray: next.index + 1, name: next.item.r.name } : null
       });
 
-      free = prepEnd;
+      // Im einfachen Modus wird erst belegt, wenn der Ofen wieder frei ist:
+      // ein Blech nach dem anderen, ohne Pipeline.
+      free = isSimple() ? bakeEnd : prepEnd;
       ovenFree = bakeEnd;
       if (temp !== null) ovenTemp = temp;
       rounds += 1;
@@ -1625,7 +1657,7 @@
 
     // 4) Pause: Der Plan hält an der nächsten geplanten Tätigkeit an, damit
     // nichts mitten im Ausrollen stehen bleibt.
-    const pauseWanted = parseClock(plan.pauseAt);
+    const pauseWanted = isSimple() ? null : parseClock(plan.pauseAt);
     const pauseLen = Math.max(0, Math.min(90, Math.round(Number(plan.pauseMin) || 0)));
     let pauseInfo = null;
     if (pauseWanted !== null && pauseLen > 0 && pauseWanted >= startAt && pauseWanted < end) {
@@ -1677,6 +1709,7 @@
   }
 
   function deadlineInfo(schedule) {
+    if (isSimple()) return null;   // im einfachen Modus gibt es keine Zielzeit
     const target = parseClock(plan.deadline);
     if (target === null || !schedule) return null;
     const diff = target - schedule.end;
@@ -1726,7 +1759,7 @@
 
   function planStepHTML(event) {
     const copy = PLAN_STEP[event.type](event);
-    const whileLine = event.type === 'sheet' && event.next
+    const whileLine = event.type === 'sheet' && event.next && !isSimple()
       ? `<em class="plan-while">Ofen läuft: in der Zeit Blech ${event.next.tray} (${esc(event.next.name)}) vorbereiten.</em>`
       : '';
     return `<li class="plan-step plan-${event.type}">
@@ -1741,14 +1774,21 @@
     </li>`;
   }
 
+  // Im einfachen Modus klingen die Stationshinweise ruhiger — ohne Pipeline.
+  const SIMPLE_STAGE_HINTS = {
+    dough: 'Ein Teig in Ruhe, der Ofen heizt rechtzeitig vor. Du musst nichts gleichzeitig machen.',
+    bake: 'Ein Blech nach dem anderen. Dazwischen ist Zeit zum Durchatmen — der Plan wartet auf dich.'
+  };
+
   function planStageHTML(stage, index) {
+    const hint = isSimple() && SIMPLE_STAGE_HINTS[stage.key] ? SIMPLE_STAGE_HINTS[stage.key] : stage.hint;
     return `<li class="plan-stage" data-phase="${esc(stage.key)}">
       <div class="plan-stage-head">
         <span class="plan-stage-num" aria-hidden="true">${index + 1}</span>
         <h3>${esc(stage.label)}</h3>
         <span class="plan-stage-time">${clock(stage.from)}–${clock(stage.to)} · ${durationLabel(stage.to - stage.from)}</span>
       </div>
-      <p class="plan-stage-hint">${esc(stage.hint)}</p>
+      <p class="plan-stage-hint">${esc(hint)}</p>
       <ol class="plan-steps">${stage.events.map(planStepHTML).join('')}</ol>
     </li>`;
   }
@@ -1788,6 +1828,38 @@
       <button class="plan-preset" type="button" data-preset="${esc(preset.key)}">
         <b>${esc(preset.label)}</b><small>${esc(preset.hint)}</small>
       </button>`).join('');
+  }
+
+  function renderPlanModes() {
+    if (pEl.modes) {
+      pEl.modes.querySelectorAll('[data-mode]').forEach((btn) => {
+        const on = btn.dataset.mode === plan.mode;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-checked', String(on));
+      });
+    }
+    if (pEl.modeNote) pEl.modeNote.textContent = (PLAN_MODES[plan.mode] || PLAN_MODES.erweitert).note;
+    if (pEl.presets) pEl.presets.hidden = isSimple();
+    if (pEl.tune) pEl.tune.hidden = isSimple();
+  }
+
+  function setPlanMode(mode) {
+    if (!PLAN_MODES[mode] || mode === plan.mode) return;
+    plan.mode = mode;
+    plan.step = 0;
+    if (isSimple() && plan.ids.length > 1) {
+      const keep = plan.ids[0];
+      plan.ids = [keep];
+      Object.keys(plan.factors).forEach((id) => { if (id !== keep) delete plan.factors[id]; });
+      [...plan.skip].forEach((id) => { if (id !== keep) plan.skip.delete(id); });
+      const kept = RECIPES.find((r) => r.id === keep);
+      toast(`Einfach backt eine Sorte: ${kept ? kept.name : 'das erste Rezept'} bleibt im Plan.`);
+    }
+    savePlan();
+    renderPlanModes();
+    renderPlanOptions();
+    renderPlanMix();
+    renderPlan();
   }
 
   function renderPlanMix() {
@@ -1840,7 +1912,12 @@
     const schedule = planSchedule(plan.ids);
 
     if (!schedule) {
-      pEl.output.innerHTML = `
+      pEl.output.innerHTML = isSimple() ? `
+        <div class="plan-empty">
+          <h3>Noch kein Rezept gewählt</h3>
+          <p>Wähle links eine Sorte — der Plan führt dich in Ruhe durch den Nachmittag: Teig anrühren, Blech für Blech backen, auskühlen lassen, fertigstellen und verpacken.</p>
+          <p class="plan-empty-hint">Im einfachen Modus rechnet der Plan mit einem Blech im Ofen, allein am Tisch und gemütlichem Tempo. Für mehrere Sorten parallel wechselst du oben auf <strong>Erweitert</strong>.</p>
+        </div>` : `
         <div class="plan-empty">
           <h3>Noch kein Rezept gewählt</h3>
           <p>Wähle links aus, was du backen willst. Der Plan führt dich dann in Stationen durch den Nachmittag: erst alle Teige, dann Blech für Blech aus dem Ofen, zum Schluss alles zusammen glasieren und verpacken.</p>
@@ -1909,6 +1986,7 @@
 
   if (pEl.options) {
     renderPlanPresets();
+    renderPlanModes();
     renderPlanTune();
     renderPlanMix();
     renderPlanGear();
@@ -1925,7 +2003,15 @@
       if (!box) return;
       const id = box.dataset.planId;
       if (box.checked) {
-        if (!plan.ids.includes(id)) plan.ids.push(id);
+        if (isSimple()) {
+          // Einfach backt eine Sorte: die neue Wahl ersetzt die alte.
+          plan.ids = [id];
+          pEl.options.querySelectorAll('[data-plan-id]').forEach((other) => {
+            other.checked = other.dataset.planId === id;
+          });
+        } else if (!plan.ids.includes(id)) {
+          plan.ids.push(id);
+        }
       } else {
         plan.ids = plan.ids.filter((x) => x !== id);
         delete plan.factors[id];
@@ -1976,6 +2062,11 @@
     pEl.presets.addEventListener('click', (e) => {
       const preset = e.target.closest('[data-preset]');
       if (preset) applyPreset(preset.dataset.preset);
+    });
+
+    pEl.modes.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-mode]');
+      if (btn) setPlanMode(btn.dataset.mode);
     });
 
     pEl.start.addEventListener('change', () => {
@@ -2105,6 +2196,7 @@
 
   const bakeEl = {
     root: document.getElementById('bakeMode'),
+    modeLabel: document.getElementById('bakeModeLabel'),
     stepLabel: document.getElementById('bakeStepLabel'),
     progressTime: document.getElementById('bakeProgressTime'),
     bar: document.getElementById('bakeBar'),
@@ -2180,7 +2272,9 @@
       if (!plan.gear.has('mixer')) hints.push('Ohne Mixer von Hand rühren — dafür ist hier mehr Zeit eingeplant.');
       if (r.ausstecher && !plan.gear.has('cutters')) hints.push(`Für ${r.name} brauchst du einen Ausstecher mit ${r.ausstecher.d} cm.`);
       if (r.id === 'spritzgebaeck' && !plan.gear.has('piping')) hints.push('Ohne Spritzbeutel: den Teig zu Rollen formen und in Scheiben schneiden.');
-      if (event.item.chill) hints.push(`Abgedeckt ${event.item.chill} Min kalt stellen — fertig um ${clock(event.item.ready)}. In der Zeit rührst du den nächsten Teig.`);
+      if (event.item.chill) hints.push(isSimple()
+        ? `Abgedeckt ${event.item.chill} Min kalt stellen — fertig um ${clock(event.item.ready)}. Die Zeit gehört dir.`
+        : `Abgedeckt ${event.item.chill} Min kalt stellen — fertig um ${clock(event.item.ready)}. In der Zeit rührst du den nächsten Teig.`);
       if (event.item.factor !== 1) hints.push(`${event.item.factor}× Menge: alle Zutaten entsprechend abwiegen — die Bleche und Stückzahlen sind im Plan schon eingerechnet.`);
 
       return {
@@ -2229,13 +2323,15 @@
         forming,
         `Blech auf mittlerer Schiene: ${event.temp ? `${event.temp} °C` : 'die Temperatur aus dem Rezept'}, ${event.dur} Min. Timer starten — von ${clock(event.bakeAt)} bis ${clock(event.bakeEnd)}.`,
         event.next
-          ? `Während dieses Blech backt: schon Blech ${event.next.tray} (${event.next.name}) ausrollen und belegen — dann steht es bereit, wenn der Ofen frei wird.`
+          ? (isSimple()
+            ? `Der Ofen braucht dich jetzt nicht: ruhig einen Tee holen. Danach Blech ${event.next.tray} (${event.next.name}) in Ruhe belegen.`
+            : `Während dieses Blech backt: schon Blech ${event.next.tray} (${event.next.name}) ausrollen und belegen — dann steht es bereit, wenn der Ofen frei wird.`)
           : 'Nach dem Backen zwei Minuten auf dem Blech lassen, dann aufs Gitter heben.'
       ];
       const hints = [];
       if (event.retemp) hints.push(`Der Ofen steht noch auf ${event.ovenWas} °C — vor diesem Blech auf ${event.temp} °C umstellen (${event.retempMin} Min eingeplant).`);
       if (event.wait > 0) hints.push(`Der Ofen ist noch belegt: Das Blech steht bereit und kommt ${event.wait} Min später hinein — in der Zeit kannst du schon aufräumen.`);
-      if (event.next) hints.push('Wer nur ein Blech hat: Das heiße Blech kurz abkühlen lassen, sonst backt der Teig schon beim Belegen an.');
+      if (event.next && !isSimple()) hints.push('Wer nur ein Blech hat: Das heiße Blech kurz abkühlen lassen, sonst backt der Teig schon beim Belegen an.');
       if (batch.length > 1) hints.push('Beide Bleche kommen gleichzeitig hinein — nach der Hälfte der Zeit einmal tauschen, damit sie gleichmäßig backen.');
       if (plan.gear.has('convection')) hints.push('Umluft trocknet stärker: lieber eine Minute früher herausnehmen und auf dem Blech nachziehen lassen.');
       return {
@@ -2306,6 +2402,7 @@
     const info = event ? bakeStep(event, sched) : doneStep(sched);
 
     bakeEl.root.dataset.phase = event ? event.type : 'done';
+    if (bakeEl.modeLabel) bakeEl.modeLabel.textContent = isSimple() ? 'Einfach' : 'Erweitert';
     bakeEl.phase.textContent = info.phase;
     bakeEl.clock.textContent = event
       ? `${clock(event.at)} Uhr · noch ${durationLabel(sched.end - event.at)} bis alles fertig ist`
@@ -2997,6 +3094,7 @@
 
   loadPlan();
   const planFromLink = applyPlanHash();
+  renderPlanModes();
   renderPlanTune();
   renderPlanGear();
   renderPlanOptions();
