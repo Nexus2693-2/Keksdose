@@ -2856,7 +2856,7 @@
 
   const pantryLabel = (key) => PANTRY_LABELS[key] || key.replace(/-/g, ' ');
 
-  const pantry = { keys: new Set(), query: '', expanded: false };
+  const pantry = { keys: new Set(), amounts: {}, query: '', expanded: false };
   const pantryEl = {
     toggle: document.getElementById('pantryToggle'),
     panel: document.getElementById('pantryPanel'),
@@ -2866,12 +2866,22 @@
   function loadPantry() {
     try {
       const raw = JSON.parse(localStorage.getItem(PANTRY_KEY) || '[]');
-      pantry.keys = new Set(Array.isArray(raw) ? raw.filter((k) => typeof k === 'string') : []);
-    } catch (err) { pantry.keys = new Set(); }
+      // Früher war der Vorrat nur eine Liste; jetzt kommen Mengen dazu.
+      const keys = Array.isArray(raw) ? raw : (Array.isArray(raw.keys) ? raw.keys : []);
+      const amounts = !Array.isArray(raw) && raw.amounts && typeof raw.amounts === 'object' ? raw.amounts : {};
+      pantry.keys = new Set(keys.filter((k) => typeof k === 'string' && PANTRY_LABELS[k]));
+      pantry.amounts = {};
+      Object.entries(amounts).forEach(([key, value]) => {
+        const n = Number(value);
+        if (pantry.keys.has(key) && Number.isFinite(n) && n > 0) pantry.amounts[key] = n;
+      });
+    } catch (err) { pantry.keys = new Set(); pantry.amounts = {}; }
   }
 
   function savePantry() {
-    try { localStorage.setItem(PANTRY_KEY, JSON.stringify([...pantry.keys])); } catch (err) { /* Sitzung genügt */ }
+    try {
+      localStorage.setItem(PANTRY_KEY, JSON.stringify({ keys: [...pantry.keys], amounts: pantry.amounts }));
+    } catch (err) { /* Sitzung genügt */ }
   }
 
   function hasPantry(key) {
@@ -2879,11 +2889,53 @@
     return (PANTRY_ALIASES[key] || []).some((alias) => pantry.keys.has(alias));
   }
 
+  // Für welche Zutaten die Menge in Stück oder Millilitern zählt (sonst Gramm).
+  const PANTRY_ML = new Set(['kokosoel', 'himbeersaft', 'himbeersirup', 'kirschsaft', 'kirschwasser', 'limettensaft', 'ahornsirup', 'sahne', 'milch', 'haferdrink', 'vanilleextrakt']);
+  const PANTRY_STK = new Set(['eier', 'zitrone', 'orange', 'schwarztee']);
+
+  const pantryUnit = (key) => (PANTRY_STK.has(key) ? 'stk' : PANTRY_ML.has(key) ? 'ml' : 'g');
+  const pantryUnitLabel = (unit) => (unit === 'stk' ? 'Stück' : unit);
+
+  // Wie viel eine Rezeptzutat in der Einheit des Vorrats braucht.
+  function pantryNeed(z, unit) {
+    if (unit === 'stk') {
+      if (z.u === 'Päckchen' || z.u === 'Bund' || z.u === 'Beutel' || !z.u) return z.m || 0;
+      return 1;
+    }
+    return unitGrams(z);
+  }
+
+  // Eigene Mengenangabe oder die eines Ersatzes (Butter/Margarine).
+  function pantryHave(key) {
+    if (Number.isFinite(pantry.amounts[key]) && pantry.amounts[key] > 0) return pantry.amounts[key];
+    for (const alias of PANTRY_ALIASES[key] || []) {
+      if (Number.isFinite(pantry.amounts[alias]) && pantry.amounts[alias] > 0) return pantry.amounts[alias];
+    }
+    return null;
+  }
+
   function pantryMatches() {
     return RECIPES.map((r) => {
-      const keys = [...new Set(r.zutaten.map((z) => pantryKey(z.n)))];
-      const missing = keys.filter((k) => !hasPantry(k));
-      return { r, missing, total: keys.length };
+      const need = new Map();
+      r.zutaten.forEach((z) => {
+        const key = pantryKey(z.n);
+        const unit = pantryUnit(key);
+        const entry = need.get(key) || { key, label: pantryLabel(key), unit, amount: 0 };
+        entry.amount += pantryNeed(z, unit);
+        need.set(key, entry);
+      });
+
+      const missing = [];
+      need.forEach((entry) => {
+        if (!hasPantry(entry.key)) {
+          missing.push({ ...entry, have: null });
+          return;
+        }
+        const have = pantryHave(entry.key);
+        if (have !== null && have + 0.001 < entry.amount) missing.push({ ...entry, have });
+      });
+
+      return { r, missing, total: need.size };
     }).sort((a, b) => a.missing.length - b.missing.length
       || a.r.zeit - b.r.zeit
       || a.r.name.localeCompare(b.r.name, 'de'));
@@ -2897,7 +2949,7 @@
           <button class="icon-btn" id="closePantry" type="button" aria-label="Vorratscheck schließen">${icons.close}</button>
         </div>
         <h2 id="pantryTitle">Was hab ich da?</h2>
-        <p class="drawer-lede">Hake ab, was im Schrank steht. Wir zeigen dir, welche Rezepte damit gehen — und was noch fehlt.</p>
+        <p class="drawer-lede">Hake ab, was im Schrank steht, und trage bei Bedarf die Menge ein. Wir zeigen dir, welche Rezepte damit gehen — und wo es noch knapp wird.</p>
       </div>
       <div class="drawer-body">
         <div class="search pantry-search">
@@ -2917,10 +2969,22 @@
     const q = norm(pantry.query.trim());
     const list = PANTRY_RULES.filter((rule) => !q || norm(rule.label).includes(q));
     grid.innerHTML = list.length
-      ? list.map((rule) => `<label class="pantry-item">
-        <input type="checkbox" data-pantry-key="${esc(rule.key)}"${pantry.keys.has(rule.key) ? ' checked' : ''}>
-        <span>${esc(rule.label)}</span>
-      </label>`).join('')
+      ? list.map((rule) => {
+        const on = pantry.keys.has(rule.key);
+        const unit = pantryUnit(rule.key);
+        const amount = pantry.amounts[rule.key];
+        return `<div class="pantry-item${on ? ' is-on' : ''}">
+          <label class="pantry-check">
+            <input type="checkbox" data-pantry-key="${esc(rule.key)}"${on ? ' checked' : ''}>
+            <span>${esc(rule.label)}</span>
+          </label>
+          ${on ? `<span class="pantry-amount">
+            <input type="number" min="0" step="1" inputmode="numeric" data-pantry-amount="${esc(rule.key)}"
+              value="${Number.isFinite(amount) ? esc(String(amount)) : ''}" placeholder="?"
+              aria-label="Vorhandene Menge ${esc(rule.label)} in ${pantryUnitLabel(unit)}"><i>${pantryUnitLabel(unit)}</i>
+          </span>` : ''}
+        </div>`;
+      }).join('')
       : '<p class="pantry-none">Diese Zutat kennen wir nicht — vielleicht anders schreiben?</p>';
   }
 
@@ -2928,12 +2992,16 @@
     const box = pantryEl.panel.querySelector('#pantryPicked');
     if (!box) return;
     if (!pantry.keys.size) {
-      box.innerHTML = '<p class="hint">Noch nichts angehakt. Schon Mehl, Butter, Zucker und Eier reichen für die ersten Rezepte.</p>';
+      box.innerHTML = '<p class="hint">Noch nichts angehakt. Schon Mehl, Butter, Zucker und Eier reichen für die ersten Rezepte — die Menge ist optional.</p>';
       return;
     }
-    const chips = [...pantry.keys].map((key) => `<button class="pantry-chip" type="button" data-pantry-remove="${esc(key)}" aria-label="${esc(pantryLabel(key))} entfernen">
-      <span>${esc(pantryLabel(key))}</span>${icons.close}
-    </button>`).join('');
+    const chips = [...pantry.keys].map((key) => {
+      const amount = pantryHave(key);
+      const unit = pantryUnitLabel(pantryUnit(key));
+      return `<button class="pantry-chip" type="button" data-pantry-remove="${esc(key)}" aria-label="${esc(pantryLabel(key))} entfernen">
+      <span>${esc(pantryLabel(key))}${amount !== null ? ` · ${fmtAmount(amount)} ${unit}` : ''}</span>${icons.close}
+    </button>`;
+    }).join('');
     box.innerHTML = `
       <div class="pantry-picked-head">
         <b>${pantry.keys.size} ${pantry.keys.size === 1 ? 'Zutat' : 'Zutaten'} im Vorrat</b>
@@ -2944,13 +3012,18 @@
 
   function pantryHitHTML(match) {
     const missing = match.missing;
+    const needs = missing.slice(0, 2).map((m) => {
+      const need = m.unit === 'stk' ? `${fmtAmount(m.amount)} Stück` : `${fmtAmount(m.amount)} ${m.unit}`;
+      return m.have === null ? esc(m.label) : `${esc(m.label)} (${need} nötig)`;
+    }).join(', ');
+    const short = missing.some((m) => m.have !== null);
     return `<button class="pantry-hit" type="button" data-id="${esc(match.r.id)}">
       <span class="pantry-hit-main">
         <b>${esc(match.r.name)}</b>
         <small>${match.r.zeit} Min · ${match.r.stueck} Stück · ${esc(match.r.level)}</small>
       </span>
       <span class="pantry-hit-status${missing.length ? '' : ' is-ready'}">${missing.length
-        ? 'fehlt: ' + missing.slice(0, 3).map((k) => esc(pantryLabel(k))).join(', ') + (missing.length > 3 ? ' …' : '')
+        ? `${short ? 'zu wenig' : 'fehlt'}: ${needs}${missing.length > 2 ? ' …' : ''}`
         : 'alles da'}</span>
     </button>`;
   }
@@ -2960,7 +3033,7 @@
     if (!box) return;
 
     if (!pantry.keys.size) {
-      box.innerHTML = '<p class="pantry-teaser">Hake ein paar Grundzutaten an, dann erscheint hier, was du damit backen kannst.</p>';
+      box.innerHTML = '<p class="pantry-teaser">Hake ein paar Grundzutaten an, dann erscheint hier, was du damit backen kannst. Mit Mengenangabe sieht der Check auch, wenn es nur noch für die halbe Portion reicht.</p>';
       return;
     }
 
@@ -3015,16 +3088,32 @@
       const box = e.target.closest('[data-pantry-key]');
       if (!box) return;
       if (box.checked) pantry.keys.add(box.dataset.pantryKey);
-      else pantry.keys.delete(box.dataset.pantryKey);
+      else {
+        pantry.keys.delete(box.dataset.pantryKey);
+        delete pantry.amounts[box.dataset.pantryKey];
+      }
       savePantry();
+      renderPantryGrid();
       renderPantryPicked();
       renderPantryResults();
     });
 
     pantryEl.panel.addEventListener('input', (e) => {
-      if (e.target.id !== 'pantrySearch') return;
-      pantry.query = e.target.value;
-      renderPantryGrid();
+      if (e.target.id === 'pantrySearch') {
+        pantry.query = e.target.value;
+        renderPantryGrid();
+        return;
+      }
+      if (!e.target.matches('[data-pantry-amount]')) return;
+      // Die Eingabe wird gespeichert, ohne das Gitter neu zu bauen — sonst
+      // verliert das Feld beim Tippen den Fokus.
+      const key = e.target.dataset.pantryAmount;
+      const value = Number(String(e.target.value).replace(',', '.'));
+      if (Number.isFinite(value) && value > 0) pantry.amounts[key] = value;
+      else delete pantry.amounts[key];
+      savePantry();
+      renderPantryPicked();
+      renderPantryResults();
     });
 
     pantryEl.panel.addEventListener('click', (e) => {
@@ -3032,6 +3121,7 @@
 
       if (e.target.closest('#pantryReset')) {
         pantry.keys.clear();
+        pantry.amounts = {};
         savePantry();
         renderPantryGrid();
         renderPantryPicked();
@@ -3042,6 +3132,7 @@
       const remove = e.target.closest('[data-pantry-remove]');
       if (remove) {
         pantry.keys.delete(remove.dataset.pantryRemove);
+        delete pantry.amounts[remove.dataset.pantryRemove];
         savePantry();
         renderPantryGrid();
         renderPantryPicked();

@@ -29,7 +29,7 @@ window.RECIPES = [
       'Den Ofen auf 175 °C Ober-/Unterhitze vorheizen. Die Rollen in 1 cm dicke Scheiben schneiden, jede Scheibe leicht zu einem Hörnchen rollen und mit Abstand auf ein Blech mit Backpapier legen.',
       '10–12 Minuten backen, bis die Enden goldbraun sind. Die Kipferl noch heiß in Puderzucker wälzen und auf einem Gitter auskühlen lassen.'
     ],
-    tipp: 'Am besten schmecken sie nach zwei Tagen. In einer Blechdose halten sie sich gut drei Wochen.'
+    tipp: 'Am besten schmecken sie nach zwei Tagen, wenn sie durchgezogen sind. In einer Blechdose halten sie sich gut drei Wochen. Puderzucker erst kurz vor dem Servieren nachstreuen – sonst zieht er Feuchtigkeit und wird klebrig.'
   },
   {
     id: 'zimtsterne',
@@ -60,7 +60,7 @@ window.RECIPES = [
       'Den Teig zwischen zwei Lagen Frischhaltefolie 8 mm dick ausrollen, Sterne ausstechen und auf ein Blech mit Backpapier setzen. Die Glasur hauchdünn aufstreichen.',
       'Den Ofen auf 200 °C vorheizen, dann ausschalten. Das Blech hineinschieben und die Sterne bei geschlossener Tür etwa 10 Minuten trocknen lassen – sie sollen hell bleiben und nur am Rand Farbe nehmen.'
     ],
-    tipp: 'Der Trick vom Konditormeister: Glasur nur hauchdünn auftragen und im nachwärmenden Ofen trocknen statt backen – so bleibt der Kern weich. Zimtsterne für das Eiweiß und Butterplätzchen für das Eigelb backen, dann sind alle Zutaten verbraucht; in der Blechdose hält eine Apfelscheibe sie wochenlang weich.'
+    tipp: 'Zimtsterne mögen keine Hitze: bei 140–150 °C backen, bis der Boden goldbraun ist. Sie dürfen weich aus dem Ofen kommen und werden beim Auskühlen fest. Die Glasur nur 1–2 mm dünn auftragen und vor dem Backen 30 Minuten antrocknen lassen – über Nacht im kalten Ofen mit offener Tür bleibt sie besonders weiß. Eine Apfelscheibe in der Dose hält die Sterne weich; alle zwei Tage wechseln, sonst schimmelt sie.'
   },
   {
     id: 'spritzgebaeck',
@@ -155,7 +155,7 @@ window.RECIPES = [
       'Den Teig 5 mm dick ausrollen und Herzen ausstechen. Bei 180 °C etwa 12 Minuten backen und vollständig auskühlen lassen.',
       'Puderzucker und Eiweiß zu einer dicken Glasur verrühren, in einen Spritzbeutel füllen und die Herzen damit verzieren. Über Nacht trocknen lassen.'
     ],
-    tipp: 'Der Teig wird mit jedem Tag im Kühlschrank besser – bis zu drei Tage ruhen lassen lohnt sich.'
+    tipp: 'Der Teig wird mit jedem Tag im Kühlschrank besser – bis zu drei Tage luftdicht ruhen lassen lohnt sich. Danach in 5 mm dicke Scheiben schneiden und erst backen, wenn die Glasur komplett trocken ist.'
   },
   {
     id: 'kokosmakronen',
@@ -183,7 +183,7 @@ window.RECIPES = [
       'Mit zwei Teelöffeln kleine Häufchen auf ein Blech mit Backpapier setzen und bei 150 °C etwa 18 Minuten backen, bis die Spitzen leicht gebräunt sind.',
       'Nach dem Abkühlen die Schokolade schmelzen und die Makronen mit dünnen Streifen verzieren.'
     ],
-    tipp: 'Die Makronen direkt nach dem Backen nicht bewegen – sie sind dann noch sehr weich und reißen leicht.'
+    tipp: 'Die Makronen direkt nach dem Backen nicht bewegen – sie sind noch weich und reißen leicht. Ofen ausschalten, Tür einen Spalt öffnen und die Makronen 10 Minuten darin nachtrocknen lassen; erst dann vom Blech heben.'
   },
   {
     id: 'heidesand',
@@ -212,7 +212,7 @@ window.RECIPES = [
       'Die Rolle in 8 mm dicke Scheiben schneiden, in Zucker wälzen und mit Abstand auf das Blech legen.',
       'Bei 170 °C 10–12 Minuten backen. Der Heidesand soll nur am Rand Farbe nehmen und innen hell bleiben.'
     ],
-    tipp: 'Je weniger der Teig geknetet wird, desto mürber wird er. Lieber kurz zusammenfügen als lange durcharbeiten.'
+    tipp: 'Je weniger der Teig geknetet wird, desto mürber wird er – lieber kurz zusammenfügen als lange durcharbeiten. Die Teigrollen mindestens zwei Stunden kalt stellen und in 5 mm dicke Scheiben schneiden, so bleiben die Ränder gerade.'
   },
   {
     id: 'brownie-cookies',
@@ -382,7 +382,7 @@ window.RECIPES = [
       'Bei 175 °C 10–12 Minuten backen, bis die Ränder hellgolden sind.',
       'Die Konfitüre kurz erwärmen, in die noch warmen Mulden füllen und die Kekse abkühlen lassen. Zum Schluss mit Puderzucker bestäuben.'
     ],
-    tipp: 'Die Mulden vor dem Backen etwas tiefer drücken, als sie wirken sollen – der Teig geht beim Backen wieder hoch.'
+    tipp: 'Die Mulde mit dem Stiel eines Kochlöffels drücken, und zwar tiefer, als sie wirken soll – der Teig geht beim Backen wieder hoch. Das Gelee erst nach dem Backen einfüllen, sonst kocht es aus.'
   },
   {
     id: 'mandeltaler',
@@ -487,7 +487,7 @@ window.RECIPES = [
       'Bei 180 °C 10–12 Minuten backen und auskühlen lassen.',
       'Die Schokolade schmelzen und die Hälfte der Taler damit bestreichen. Auf Backpapier fest werden lassen.'
     ],
-    tipp: 'Den Krokant erst kurz vor dem Backen unterheben – so bleibt er knusprig statt weich zu werden.'
+    tipp: 'Den Krokant erst kurz vor dem Backen unterheben und nur unterheben, nicht rühren – so bleibt er knusprig statt weich zu werden.'
   },
   {
     id: 'schoko-marzipantaler',
@@ -591,7 +591,7 @@ window.RECIPES = [
       'Bei 175 °C 10–12 Minuten backen und vollständig auskühlen lassen.',
       'Puderzucker und Kirschsaft zu einem dicken Guss verrühren und die Sterne damit bestreichen. In die Mitte jeweils einen Klecks Kirschkonfitüre setzen.'
     ],
-    tipp: 'Die Konfitüre vorher durch ein Sieb streichen – dann liegt die Glasur glatt und der Kern glänzt.'
+    tipp: 'Die Konfitüre vorher durch ein Sieb streichen – dann liegt die Glasur glatt und der Kern glänzt. Den Guss in zwei dünnen Schichten auftragen und jede Schicht trocknen lassen.'
   },
   {
     id: 'teesterne',
@@ -654,7 +654,7 @@ window.RECIPES = [
       'In 1 cm dicke Scheiben schneiden, zu Hörnchen rollen und bei 175 °C 10–12 Minuten backen.',
       'Zucker und den restlichen Zimt mischen und die Kipferl noch heiß darin wälzen.'
     ],
-    tipp: 'Nur heiß wälzen: kalte Kipferl nehmen den Zimtzucker kaum an und bleiben fad.'
+    tipp: 'Zimt und Zucker im Verhältnis 3:1 mischen. Nur heiß wälzen: Kalte Kipferl nehmen den Zimtzucker kaum an und bleiben fad.'
   },
   {
     id: 'orangenhoernchen',
@@ -1038,7 +1038,7 @@ window.RECIPES = [
       'Die Rollen in 1 cm dicke Scheiben schneiden, auf ein Blech mit Backpapier legen und je eine Walnusshälfte leicht eindrücken.',
       'Bei 180 °C 10–12 Minuten backen. Auf dem Blech auskühlen lassen – die Scheiben sind frisch aus dem Ofen noch weich.'
     ],
-    tipp: 'Im Originalrezept ist nur das Dinkelmehl (Type 1050) angegeben – die übrigen Mengen sind eine stimmige Ergänzung. Dinkel nimmt weniger Flüssigkeit auf, deshalb den Teig lieber etwas fester lassen und notfalls einen Esslöffel Milch zugeben.'
+    tipp: 'Dinkelmehl Type 1050 nimmt weniger Flüssigkeit auf als Weizenmehl 405 – den Teig lieber etwas fester lassen und nur esslöffelweise Milch zugeben. Wer es nussiger mag, röstet die Nüsse vorher 5 Minuten bei 160 °C.'
   },
   {
     id: 'zimt-schweineoehrchen',

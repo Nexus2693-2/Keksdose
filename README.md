@@ -26,7 +26,9 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - **43 Rezepte in vier Sorten:** Plätzchen, Waffeln (Herz- und Apfelwaffeln), Pancakes (auch vegan) und Gebäcke aus dem Ofen (Zimtschnecken, Buchteln, Schoko-Muffins, Streuselkuchen, Pistazien-Cookies). Der Filter „Gebäck“ und der Vorschlag „Waffeln & Pancakes“ im Backplan machen sie auffindbar.
 - **Preisschätzung:** Jede Karte zeigt die geschätzten Zutatenkosten für die ganze Sorte und je Stück (`PRICE_RULES` in `public/app.js`). Der Rezept-Drawer rechnet beim Skalieren mit, die Einkaufsliste nennt die Summe. Grundlage sind grobe Supermarktpreise pro 100 g, 100 ml oder Stück; Löffel, Päckchen und Prisen werden über `unitGrams` umgerechnet. Es ist eine Hausnummer, kein Kassenbon.
 - **Finder mit zehn Fragen:** Gebäcksorte, Geschmack, Textur, Zeit, Anlass, Ausschlüsse, Aufwand, Menge, Preis und „kenn ich schon“. Vegane, nuss- und schokofreie Wünsche sind harte Ausschlüsse; die drei besten Treffer bekommen zwei Inspirationsvorschläge aus einer anderen Gebäcksorte an die Seite. Jedes Rezept braucht dafür Merkmale in `window.RECIPE_TRAITS`.
-- **Vorratscheck („Was hab ich da?“):** Zutaten abhaken, und die Seite zeigt, welche Rezepte damit ohne Einkauf gehen und was noch fehlt.
+- **Vorratscheck („Was hab ich da?“):** Zutaten abhaken und auf Wunsch die vorhandene Menge eintragen (g, ml oder Stück). Der Check vergleicht mit dem Rezeptbedarf und meldet „zu wenig Mehl (250 g nötig)“ statt nur „fehlt“; ohne Mengenangabe gilt eine Zutat wie bisher als vorhanden.
+- **Tipps:** Jedes Rezept endet mit „Gut zu wissen“ — eine konkrete Handlung samt Begründung (Temperatur, Timing, Technik, Lagerung), keine allgemeinen Floskeln. Bei Rezeptänderungen prüft der Test, dass jeder Tipp vorhanden, ausreichend ausführlich und einzigartig ist.
+- **App-Ankündigung:** Vor der Fußzeile steht der Abschnitt „Die Keksdose-App kommt“ (`.app-teaser`) mit dem Etikett „In Arbeit“; in der Druckansicht wird er ausgeblendet.
 
 ## Bewegung und Bedienung
 
