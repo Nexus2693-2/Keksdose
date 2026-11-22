@@ -1,14 +1,14 @@
 # Keksdose
 
 Plätzchen-Rezepte als statische Website: HTML, CSS und JavaScript in `public/`, kein Build-Schritt.
-35 Rezepte, Plätzchen-Finder, Portions-/Ausstecher-Rechner, Einkaufsliste, Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
+43 Rezepte — Plätzchen, Waffeln, Pancakes und Gebäcke —, Rezept-Finder mit zehn Fragen, Portions-/Ausstecher-Rechner, Preisschätzung je Sorte und Stück, Einkaufsliste, Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
 Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je Sorte, lässt sich als Checkliste drucken, per Link teilen und als Kalenderdatei exportieren; nach dem ersten Besuch läuft die Seite auch ohne Netz (PWA).
 
 ## Struktur
 
 - `public/index.html` – Seitenaufbau
 - `public/styles.css` – Gestaltung inklusive Druckansicht
-- `public/app.js` – Filter, Rezept-Drawer, Finder, Einkaufsliste, Backplan, Backmodus, Vorratscheck
+- `public/app.js` – Filter, Rezept-Drawer, Finder, Preisschätzung, Einkaufsliste, Backplan, Backmodus, Vorratscheck
 - `public/recipes.js` – Rezeptdaten
 - `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` – Offline-Hülle und App-Icons
 - `worker.js` + `sites.manifest.json` – Freebuff-Deploy (Worker liefert `public/` aus)
@@ -20,6 +20,13 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - **Plan drucken:** druckt nur die Stationen als Checkliste mit Kästchen zum Abhaken.
 - **In den Kalender:** lädt eine `.ics`-Datei mit allen Stationen als Termine.
 - **Offline:** `sw.js` legt die Seite nach dem ersten Besuch im Cache ab, `manifest.webmanifest` macht sie installierbar. Bei jeder Veröffentlichung `VERSION` in `public/sw.js` hochzählen, sonst bleibt die alte Hülle aktiv.
+
+## Sortiment, Preise und Finder
+
+- **43 Rezepte in vier Sorten:** Plätzchen, Waffeln (Herz- und Apfelwaffeln), Pancakes (auch vegan) und Gebäcke aus dem Ofen (Zimtschnecken, Buchteln, Schoko-Muffins, Streuselkuchen, Pistazien-Cookies). Der Filter „Gebäck“ und der Vorschlag „Waffeln & Pancakes“ im Backplan machen sie auffindbar.
+- **Preisschätzung:** Jede Karte zeigt die geschätzten Zutatenkosten für die ganze Sorte und je Stück (`PRICE_RULES` in `public/app.js`). Der Rezept-Drawer rechnet beim Skalieren mit, die Einkaufsliste nennt die Summe. Grundlage sind grobe Supermarktpreise pro 100 g, 100 ml oder Stück; Löffel, Päckchen und Prisen werden über `unitGrams` umgerechnet. Es ist eine Hausnummer, kein Kassenbon.
+- **Finder mit zehn Fragen:** Gebäcksorte, Geschmack, Textur, Zeit, Anlass, Ausschlüsse, Aufwand, Menge, Preis und „kenn ich schon“. Vegane, nuss- und schokofreie Wünsche sind harte Ausschlüsse; die drei besten Treffer bekommen zwei Inspirationsvorschläge aus einer anderen Gebäcksorte an die Seite. Jedes Rezept braucht dafür Merkmale in `window.RECIPE_TRAITS`.
+- **Vorratscheck („Was hab ich da?“):** Zutaten abhaken, und die Seite zeigt, welche Rezepte damit ohne Einkauf gehen und was noch fehlt.
 
 ## Bewegung und Bedienung
 

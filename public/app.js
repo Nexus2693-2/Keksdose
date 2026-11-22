@@ -3,7 +3,7 @@
   'use strict';
 
   const RECIPES = window.RECIPES || [];
-  const TAG_ORDER = ['Klassiker', 'Schokolade', 'Nüsse', 'Fruchtig', 'Vegan', 'Schnell', 'Waffeln'];
+  const TAG_ORDER = ['Klassiker', 'Schokolade', 'Nüsse', 'Fruchtig', 'Vegan', 'Schnell', 'Waffeln', 'Gebäck'];
   const CUTTER_MIN = 1;
   const CUTTER_MAX = 10;
 
@@ -330,8 +330,104 @@
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
     check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>',
     print: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5"/><rect x="3.5" y="9" width="17" height="7.5" rx="2"/><path d="M7 14h10v6H7z"/></svg>',
-    basket: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>'
+    basket: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>',
+    euro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 6.4A6.2 6.2 0 0 0 7 10.5v3a6.2 6.2 0 0 0 9.5 4.1"/><path d="M4.5 10.4h7M4.5 13.2h7"/></svg>'
   };
+
+  /* ---------- Preisschätzung ---------- */
+  // Grobe Supermarktpreise: pro 100 g, 100 ml oder pro Stück. Das ist kein
+  // Kassenbon, sondern eine Hausnummer für den Einkauf.
+  const PRICE_RULES = [
+    { test: /haselnussglasur/, price: 1.0 },
+    { test: /mandelglasur/, price: 1.1 },
+    { test: /schokoglasur|kuverture|schokolade|schokotropfen/, price: 0.95 },
+    { test: /krokant/, price: 0.9 },
+    { test: /kakao/, price: 0.85 },
+    { test: /kokosol/, price: 1.2 },
+    { test: /kokos/, price: 0.7 },
+    { test: /pistazie/, price: 2.5 },
+    { test: /mandel/, price: 1.05 },
+    { test: /haselnuss/, price: 1.0 },
+    { test: /walnuss/, price: 1.6 },
+    { test: /nuss/, price: 1.2 },
+    { test: /marzipan/, price: 1.2 },
+    { test: /nutella|nougatcreme/, price: 0.8 },
+    { test: /konfiture|marmelade|gelee/, price: 0.5 },
+    { test: /himbeer|johannisbeer|kirsche|aprikose|erdbeer/, price: 0.8 },
+    { test: /essig/, price: 0.4 },
+    { test: /zitrone|orange|apfel/, per: 'stk', price: 0.45 },
+    { test: /zimt/, price: 0.6 },
+    { test: /nelken|lebkuchengewurz|gewurz/, price: 0.9 },
+    { test: /vanilleextrakt/, price: 6.0 },
+    { test: /vanillezucker|vanillinzucker/, per: 'stk', price: 0.1 },
+    { test: /puderzucker/, price: 0.2 },
+    { test: /brauner zucker/, price: 0.25 },
+    { test: /zucker/, price: 0.12 },
+    { test: /honig/, price: 1.0 },
+    { test: /ahornsirup|sirup/, price: 1.4 },
+    { test: /mehl/, price: 0.09 },
+    { test: /backpulver/, per: 'stk', price: 0.08 },
+    { test: /hefe/, per: 'stk', price: 0.15 },
+    { test: /speisestarke|starke/, price: 0.3 },
+    { test: /haferflocken/, price: 0.15 },
+    { test: /blatterteig/, per: 'stk', price: 1.6 },
+    { test: /eigelb|eiweiss|eier|(^|\s)ei(\s|$)/, per: 'stk', price: 0.32 },
+    { test: /buttermilch/, price: 0.1 },
+    { test: /butter/, price: 0.9 },
+    { test: /margarine/, price: 0.55 },
+    { test: /palmin/, price: 0.9 },
+    { test: /sahne|schmand|creme fraiche/, price: 0.3 },
+    { test: /frischkase|quark/, price: 0.7 },
+    { test: /haferdrink|milch/, price: 0.1 },
+    { test: /salz/, price: 0.05 },
+    { test: /rosine/, price: 0.6 },
+    { test: /schwarztee/, per: 'stk', price: 0.06 },
+    { test: /(^|\s)ol(\s|$)/, price: 0.6 },
+    { test: /wasser/, price: 0.01 }
+  ];
+
+  const priceNorm = (s) => String(s).toLowerCase()
+    .replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss');
+
+  // Was ein Löffel, ein Päckchen oder eine Prise ungefähr wiegt.
+  const unitGrams = (z) => {
+    const m = z.m || 0;
+    if (z.u === 'kg') return m * 1000;
+    if (z.u === 'g') return m;
+    if (z.u === 'l') return m * 1000;
+    if (z.u === 'ml') return m;
+    if (z.u === 'EL') return m * 12;
+    if (z.u === 'TL') return m * 4;
+    if (z.u === 'Tasse') return m * 130;
+    if (z.u === 'Päckchen') return m * 8;
+    if (z.u === 'Prise') return m * 0.4;
+    if (!z.u) return m * 55;   // ein Ei wiegt etwa so viel
+    return m;
+  };
+
+  const priceRule = (name) => {
+    const n = priceNorm(name);
+    return PRICE_RULES.find((rule) => rule.test.test(n)) || { price: 0.5 };
+  };
+
+  // Zutaten einer Sorte zusammengerechnet – geschätzt, nicht gerechnet.
+  function recipeCost(r) {
+    return r.zutaten.reduce((sum, z) => {
+      const rule = priceRule(z.n);
+      if (rule.per === 'stk') {
+        const count = !z.u || z.u === 'Päckchen' || z.u === 'Bund' ? (z.m || 0) : 1;
+        return sum + count * rule.price;
+      }
+      return sum + (unitGrams(z) / 100) * rule.price;
+    }, 0);
+  }
+
+  const euro = (value) => {
+    const cents = Math.max(0, Math.round(value * 100));
+    return `${Math.floor(cents / 100)},${String(cents % 100).padStart(2, '0')} €`;
+  };
+
+  const costPerPiece = (r) => recipeCost(r) / Math.max(1, r.stueck);
 
   /* ---------- Filter & Grid ---------- */
   function availableTags() {
@@ -381,6 +477,9 @@
           <span>${esc(r.level)}</span>
         </div>
         <div class="card-tags">${r.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>
+        <div class="card-cost" title="Grobe Schätzung für alle Zutaten">
+          <span>${icons.euro}</span>≈ ${euro(recipeCost(r))} · ${euro(costPerPiece(r))} je Stück
+        </div>
       </article>`;
   }
 
@@ -411,6 +510,7 @@
     if (r.kuehl) items.push(`<li>${icons.flake}${r.kuehl} Min kühlen</li>`);
     items.push(`<li>${icons.cookie}<span id="metaPieces">${r.stueck} Stück</span></li>`);
     items.push(`<li>${icons.level}${esc(r.level)}</li>`);
+    items.push(`<li>${icons.euro}<span id="costMeta">≈ ${euro(recipeCost(r))} Zutaten · ${euro(costPerPiece(r))} je Stück</span></li>`);
     return `<ul class="meta-list">${items.join('')}</ul>`;
   }
 
@@ -501,7 +601,7 @@
           ${cutterHTML(r)}
           <h3>Zutaten</h3>
           <ul class="zutaten" id="zutatenList">${ingredientHTML(r)}</ul>
-          <p class="hint">Mengen beim Skalieren gerundet — Ei und Gewürze lieber nach Gefühl.</p>
+          <p class="hint">Mengen beim Skalieren gerundet — Ei und Gewürze lieber nach Gefühl. Die Preise sind grobe Supermarkt-Schätzungen für alle Zutaten.</p>
           <h3>Zubereitung</h3>
           <ol class="schritte" id="schritteList">${stepsHTML(r)}</ol>
           <p class="tipp"><strong>Gut zu wissen</strong>${esc(r.tipp)}</p>
@@ -574,6 +674,11 @@
     });
     const metaPieces = el.drawer.querySelector('#metaPieces');
     if (metaPieces && r.stueckSchritt) metaPieces.textContent = n + ' Stück';
+    const costMeta = el.drawer.querySelector('#costMeta');
+    if (costMeta) {
+      const cost = recipeCost(r) * state.scale;
+      costMeta.textContent = `≈ ${euro(cost)} Zutaten · ${euro(cost / n)} je Stück`;
+    }
     const range = el.drawer.querySelector('#cutterRange');
     if (range && Number(range.value) !== state.cutter) range.value = String(state.cutter);
   }
@@ -599,10 +704,23 @@
   const TRAIT_LABELS = {
     muerbe: 'mürbe', knusprig: 'knusprig', weich: 'weich', gefuellt: 'gefüllt',
     schoko: 'Schokolade', nussig: 'Nüsse', fruchtig: 'fruchtig',
-    klassisch: 'klassisch', vegan: 'vegan', dekorativ: 'dekorativ', zimtig: 'Zimt'
+    klassisch: 'klassisch', vegan: 'vegan', dekorativ: 'dekorativ', zimtig: 'Zimt',
+    waffel: 'Waffeln', pancake: 'Pancakes', gebaeck: 'Gebäck', plaetzchen: 'Plätzchen',
+    neu: 'neu im Sortiment', bewaehrt: 'bewährt', guenstig: 'günstig',
+    klein: 'kleine Menge', gross: 'große Menge'
   };
 
   const FINDER_QUESTIONS = [
+    {
+      q: 'Was möchtest du backen?',
+      hint: 'Das ganze Sortiment: Plätzchen, Waffeln, Pancakes und Gebäcke.',
+      options: [
+        { label: 'Klassische Plätzchen', w: { plaetzchen: 4 } },
+        { label: 'Waffeln aus dem Eisen', w: { waffel: 5 } },
+        { label: 'Pancakes aus der Pfanne', w: { pancake: 5 } },
+        { label: 'Gebäck aus dem Ofen: Muffins, Schnecken, Kuchen', w: { gebaeck: 4 } }
+      ]
+    },
     {
       q: 'Wonach ist dir heute zumute?',
       hint: 'Der Geschmack gibt den Ausschlag.',
@@ -662,6 +780,34 @@
         { label: 'Ich darf mich austoben', w: { aufwendig: 3, dekorativ: 2 } },
         { label: 'Egal, ich nehme, was kommt', w: {} }
       ]
+    },
+    {
+      q: 'Wie viele sollen es werden?',
+      hint: 'Für eine kleine Runde oder die volle Blechdose.',
+      options: [
+        { label: 'Nur eine kleine Runde', w: { klein: 3 } },
+        { label: 'Ein normales Blech', w: { mittelmenge: 2 } },
+        { label: 'Eine große Dose für viele', w: { gross: 3 } },
+        { label: 'Egal, ich backe einfach los', w: {} }
+      ]
+    },
+    {
+      q: 'Darf es günstig bleiben?',
+      hint: 'Wir schätzen die Zutatenkosten pro Stück.',
+      options: [
+        { label: 'Ja, gern unter 10 Cent pro Stück', w: { guenstig: 3 } },
+        { label: 'Hauptsache gut, der Preis ist egal', w: {} },
+        { label: 'Es darf auch mal etwas Edles sein', w: { edel: 3 } }
+      ]
+    },
+    {
+      q: 'Kennst du das Rezept schon?',
+      hint: 'Bewährtes oder etwas Neues ausprobieren.',
+      options: [
+        { label: 'Etwas Bewährtes', w: { bewaehrt: 3 } },
+        { label: 'Gerne etwas Neues aus dem Sortiment', w: { neu: 4 } },
+        { label: 'Überrasch mich', w: {} }
+      ]
     }
   ];
 
@@ -713,6 +859,19 @@
     }
   }
 
+  // Welche Gebäcksorte ein Rezept ist – für die Inspiration neben dem Ergebnis.
+  const typeOf = (r) => {
+    const traits = (window.RECIPE_TRAITS && window.RECIPE_TRAITS[r.id]) || [];
+    if (traits.includes('waffel')) return 'waffel';
+    if (traits.includes('pancake')) return 'pancake';
+    if (traits.includes('gebaeck')) return 'gebaeck';
+    return 'plaetzchen';
+  };
+
+  // Harte Ausschlüsse: Wer „ohne Nüsse“ oder „vegan“ wählt, soll keine
+  // Rezepte bekommen, die das nicht erfüllen.
+  const FINDER_EXCLUDES = ['vegan', 'nussfrei', 'schokofrei'];
+
   function finderMatches() {
     const weights = {};
     FINDER_QUESTIONS.forEach((q, i) => {
@@ -722,43 +881,60 @@
     });
     const max = Object.values(weights).filter((v) => v > 0).reduce((a, b) => a + b, 0) || 1;
 
-    return RECIPES.map((r) => {
+    const hitFor = (key, r, traits) => {
+      if (key === 'vegan') return r.tags.includes('Vegan');
+      if (key === 'einfach') return r.level === 'Einfach';
+      if (key === 'mittel') return r.level === 'Mittel';
+      if (key === 'aufwendig') return r.level === 'Anspruchsvoll';
+      if (key === 'schnell') return totalTime(r) <= 35;
+      if (key === 'mittelzeit') return totalTime(r) <= 75;
+      if (key === 'nussfrei') return !traits.includes('nussig');
+      if (key === 'schokofrei') return !traits.includes('schoko');
+      if (key === 'plaetzchen') return !traits.includes('gebaeck') && !traits.includes('pancake');
+      if (key === 'klein') return r.stueck <= 20;
+      if (key === 'mittelmenge') return r.stueck > 20 && r.stueck <= 40;
+      if (key === 'gross') return r.stueck >= 40;
+      if (key === 'guenstig') return costPerPiece(r) <= 0.1;
+      if (key === 'edel') return costPerPiece(r) >= 0.18;
+      if (key === 'bewaehrt') return !!r.oma || traits.includes('klassisch');
+      return traits.includes(key);
+    };
+
+    const ranked = RECIPES.map((r) => {
       const traits = (window.RECIPE_TRAITS && window.RECIPE_TRAITS[r.id]) || [];
+      if (FINDER_EXCLUDES.some((key) => weights[key] && !hitFor(key, r, traits))) return null;
+
       let score = 0;
       const matched = [];
-
       Object.entries(weights).forEach(([key, value]) => {
-        let hit;
-        if (key === 'vegan') hit = r.tags.includes('Vegan');
-        else if (key === 'einfach') hit = r.level === 'Einfach';
-        else if (key === 'mittel') hit = r.level === 'Mittel';
-        else if (key === 'aufwendig') hit = r.level === 'Anspruchsvoll';
-        else if (key === 'schnell') hit = totalTime(r) <= 35;
-        else if (key === 'mittelzeit') hit = totalTime(r) <= 75;
-        else if (key === 'nussfrei') hit = !traits.includes('nussig');
-        else if (key === 'schokofrei') hit = !traits.includes('schoko');
-        else hit = traits.includes(key);
-
-        if (hit) {
-          score += value;
-          if (TRAIT_LABELS[key]) matched.push(TRAIT_LABELS[key]);
-        }
+        if (!hitFor(key, r, traits)) return;
+        score += value;
+        if (TRAIT_LABELS[key]) matched.push(TRAIT_LABELS[key]);
       });
 
-      return { r, score, matched, pct: Math.max(1, Math.min(99, Math.round((score / max) * 100))) };
-    }).sort((a, b) => b.score - a.score || totalTime(a.r) - totalTime(b.r));
+      // Ein kleiner Grundwert hält auch Nischenrezepte im Rennen, damit sie
+      // als Idee auftauchen können.
+      return { r, score: score + 0.4, matched, pct: Math.max(1, Math.min(99, Math.round((score / max) * 100))) };
+    }).filter(Boolean);
+
+    if (!ranked.length) {
+      return RECIPES.map((r) => ({ r, score: 0, matched: [], pct: 40 }))
+        .sort((a, b) => totalTime(a.r) - totalTime(b.r));
+    }
+
+    return ranked.sort((a, b) => b.score - a.score || totalTime(a.r) - totalTime(b.r));
   }
 
-  function hitHTML(match, main) {
+  function hitHTML(match, main, label) {
     const r = match.r;
     return `
       <button class="hit${main ? ' hit-main' : ''}" type="button" data-id="${esc(r.id)}">
         <span class="hit-art" style="--tint:${esc(r.tint)}">${cookieArt(r)}</span>
         <span class="hit-copy">
-          <span class="hit-badge">${main ? 'Beste Passung' : 'Auch passend'} · ${match.pct} %</span>
+          <span class="hit-badge">${label || (main ? 'Beste Passung' : 'Auch passend')} · ${match.pct} %</span>
           <span class="hit-name">${esc(r.name)}</span>
-          <span class="hit-meta">${r.zeit} Min · ${r.stueck} Stück · ${esc(r.level)}</span>
-          ${main && match.matched.length
+          <span class="hit-meta">${r.zeit} Min · ${r.stueck} Stück · ${esc(r.level)} · ≈ ${euro(costPerPiece(r))}/Stück</span>
+          ${(main || label) && match.matched.length
             ? `<span class="hit-why">Passt wegen: ${match.matched.slice(0, 3).map(esc).join(' · ')}</span>`
             : ''}
         </span>
@@ -769,14 +945,20 @@
     const ranked = finderMatches();
     const total = RECIPES.length;
 
+    const top = ranked.slice(0, 3);
+    const seenTypes = new Set(top.map((m) => typeOf(m.r)));
+    const ideas = ranked.slice(3).filter((m) => !seenTypes.has(typeOf(m.r))).slice(0, 2);
+
     fEl.result.innerHTML = `
       <p class="eyebrow"><span></span>Dein Ergebnis</p>
-      <h2 class="finder-q">Das sind deine Plätzchen.</h2>
-      <p class="finder-lede">Aus ${total} Rezepten berechnet. Ein Klick öffnet Zutaten und Anleitung.</p>
+      <h2 class="finder-q">Das passt zu dir.</h2>
+      <p class="finder-lede">Aus allen ${total} Rezepten — Plätzchen, Waffeln, Pancakes und Gebäcke — berechnet. Ein Klick öffnet Zutaten und Anleitung.</p>
       <div class="hits">
         ${hitHTML(ranked[0], true)}
         ${ranked.slice(1, 3).map((m) => hitHTML(m, false)).join('')}
       </div>
+      ${ideas.length ? `<h3 class="finder-sub">Vielleicht auch eine Idee</h3>
+      <div class="hits">${ideas.map((m) => hitHTML(m, false, 'Inspiration')).join('')}</div>` : ''}
       <div class="finder-actions">
         <button class="btn btn-ghost" type="button" id="finderAgain">Nochmal beantworten</button>
         <a class="btn btn-primary" href="#rezepte">Alle ${total} Rezepte</a>
@@ -955,8 +1137,13 @@
         </ul>
       </section>`).join('');
 
+    const totalCost = listState.items.reduce((sum, item) => {
+      const r = RECIPES.find((x) => x.id === item.id);
+      return r ? sum + recipeCost(r) * item.factor : sum;
+    }, 0);
+
     return `<div class="drawer-scroll list-scroll">
-      ${head(`${listState.items.length} ${listState.items.length === 1 ? 'Rezept' : 'Rezepte'}, ${entries.length} Zutaten — zusammengerechnet.`)}
+      ${head(`${listState.items.length} ${listState.items.length === 1 ? 'Rezept' : 'Rezepte'}, ${entries.length} Zutaten — zusammen etwa ${euro(totalCost)}.`)}
       <div class="drawer-body">
         <div class="list-recipes">${recipes}</div>
         ${groupHTML}
@@ -964,7 +1151,7 @@
           <button class="btn btn-primary" type="button" id="printList">${icons.print}Liste drucken</button>
           <button class="btn btn-ghost" type="button" id="clearList">Liste leeren</button>
         </div>
-        <p class="hint">Mengen sind auf ¼ gerundet und auf der Liste zusammengefasst. Abgehakte Zutaten bleiben gespeichert.</p>
+        <p class="hint">Mengen sind auf ¼ gerundet und auf der Liste zusammengefasst, Preise grob geschätzt. Abgehakte Zutaten bleiben gespeichert.</p>
       </div>
     </div>`;
   }
@@ -1130,7 +1317,8 @@
   const PLAN_PRESETS = [
     { key: 'omas', label: 'Omas Klassiker', hint: 'Vier Sorten für die Blechdose', ids: ['vanillekipferl', 'zimtsterne', 'spritzgebaeck', 'heidesand'] },
     { key: 'schnell', label: 'Schnelle Runde', hint: 'Drei Sorten ohne Wartezeit', ids: ['vegane-hafer-kekse', 'kokosmakronen', 'haferflockenkekse'] },
-    { key: 'schoko', label: 'Schoko & Nuss', hint: 'Drei Sorten für Naschkatzen', ids: ['spritzgebaeck', 'brownie-cookies', 'schoko-nuss-cookies'] }
+    { key: 'schoko', label: 'Schoko & Nuss', hint: 'Drei Sorten für Naschkatzen', ids: ['spritzgebaeck', 'brownie-cookies', 'schoko-nuss-cookies'] },
+    { key: 'fruehstueck', label: 'Waffeln & Pancakes', hint: 'Frühstück und Kaffeetafel', ids: ['herzwaffeln', 'buttermilch-pancakes', 'apfel-waffeln'] }
   ];
 
   // Zwei Wege durch den Backtag: eine Sorte in Ruhe oder mehrere parallel.

@@ -1132,6 +1132,266 @@ window.RECIPES = [
       'Jede Waffel etwa 1–2 Minuten goldbraun backen. Mit frischem Obst oder Sahne genießen.'
     ],
     tipp: 'Den Teig nach dem Zusammenrühren 10 Minuten quellen lassen – dann bindet das Mehl die Milch und die Waffeln werden fluffiger. Das Eisen gut vorheizen und erst ab der zweiten Waffel einfetten, so lösen sich die Herzen sauber. Fertige Waffeln im Ofen bei 80 °C warm halten; übrig gebliebene einfrieren und im Toaster wieder knusprig aufbacken.'
+  },
+  {
+    id: 'buttermilch-pancakes',
+    name: 'Buttermilch-Pancakes',
+    kicker: 'Dicke, fluffige Pfannkuchen aus der Pfanne – in 20 Minuten auf dem Tisch.',
+    shape: 'circle',
+    dough: '#e7c184',
+    accent: '#fdf6e6',
+    tint: '#f8eed9',
+    zeit: 20,
+    stueck: 8,
+    stueckSchritt: 1,
+    stueckMax: 24,
+    level: 'Einfach',
+    tags: ['Gebäck', 'Schnell'],
+    zutaten: [
+      { m: 200, u: 'g', n: 'Mehl' },
+      { m: 2, u: 'TL', n: 'Backpulver' },
+      { m: 1, u: 'EL', n: 'Zucker' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 2, u: '', n: 'Eier' },
+      { m: 300, u: 'ml', n: 'Buttermilch' },
+      { m: 2, u: 'EL', n: 'Öl' },
+      { m: 1, u: 'TL', n: 'Butter zum Ausbacken' }
+    ],
+    schritte: [
+      'Mehl, Backpulver, Zucker und Salz in einer Schüssel mischen.',
+      'Eier, Buttermilch und Öl verquirlen und in einem Rutsch unter die trockenen Zutaten rühren – nur so lange, bis kein Mehl mehr zu sehen ist. Kleine Klümpchen dürfen bleiben.',
+      'Den Teig 10 Minuten quellen lassen. In der Zeit die Pfanne bei mittlerer Hitze vorheizen und mit etwas Butter ausstreichen.',
+      'Je eine kleine Kelle Teig in die Pfanne geben und 2–3 Minuten backen, bis sich Bläschen zeigen. Wenden und noch 1–2 Minuten fertig backen. Fertige Pancakes im Ofen bei 80 °C warm halten.'
+    ],
+    tipp: 'Der Teig darf ruhig dickflüssig sein – dünn gerührt werden die Pancakes flach und trocken. Buttermilch lässt sich durch Milch mit einem Teelöffel Zitronensaft ersetzen, wenn sie zehn Minuten stehen darf. Übrig gebliebene Pancakes einfrieren und im Toaster aufbacken.'
+  },
+  {
+    id: 'apfel-waffeln',
+    name: 'Apfel-Waffeln',
+    kicker: 'Herb-süße Waffeln mit geriebenem Apfel und einer Spur Zimt.',
+    shape: 'waffle',
+    dough: '#dfae66',
+    accent: '#fdf1dc',
+    tint: '#f6e8d2',
+    zeit: 25,
+    stueck: 10,
+    stueckSchritt: 1,
+    stueckMax: 40,
+    level: 'Einfach',
+    tags: ['Waffeln', 'Fruchtig'],
+    zutaten: [
+      { m: 200, u: 'g', n: 'Mehl' },
+      { m: 2, u: 'TL', n: 'Backpulver' },
+      { m: 1, u: 'Päckchen', n: 'Vanillezucker' },
+      { m: 1, u: 'TL', n: 'Zimt' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 2, u: '', n: 'Eier' },
+      { m: 200, u: 'ml', n: 'Milch' },
+      { m: 100, u: 'g', n: 'weiche Butter' },
+      { m: 1, u: '', n: 'säuerlicher Apfel' }
+    ],
+    schritte: [
+      'Mehl, Backpulver, Vanillezucker, Zimt und Salz in einer Schüssel mischen.',
+      'Eier trennen. Die Eigelbe mit der weichen Butter und der Milch verrühren. Den Apfel schälen, fein reiben und unterrühren.',
+      'Die trockenen Zutaten kurz unter die feuchte Mischung rühren. Das Eiweiß steif schlagen und vorsichtig unterheben – das macht die Waffeln locker.',
+      'Das Waffeleisen vorheizen, leicht einfetten und je zwei Esslöffel Teig hineingeben. Etwa 2–3 Minuten goldbraun backen. Fertige Waffeln im Ofen bei 80 °C warm halten.'
+    ],
+    tipp: 'Den Apfel nicht ausdrücken: Der Saft gehört in den Teig und macht die Waffeln saftig. Wer es würziger mag, gibt eine Prise Kardamom dazu. Waffeln schmecken auch kalt noch gut – mit Apfelmus oder einem Klecks Sahne.'
+  },
+  {
+    id: 'zimtschnecken',
+    name: 'Zimtschnecken',
+    kicker: 'Hefeteigschnecken mit Zimt-Zucker – weich, klebrig, ofenwarm am besten.',
+    shape: 'swirl',
+    dough: '#d9a86a',
+    accent: '#fdf4e4',
+    tint: '#f5e6d1',
+    zeit: 35,
+    kuehl: 60,
+    stueck: 12,
+    level: 'Mittel',
+    tags: ['Gebäck', 'Klassiker'],
+    zutaten: [
+      { m: 500, u: 'g', n: 'Mehl' },
+      { m: 1, u: 'Päckchen', n: 'Trockenhefe' },
+      { m: 250, u: 'ml', n: 'Milch' },
+      { m: 80, u: 'g', n: 'Zucker' },
+      { m: 100, u: 'g', n: 'weiche Butter' },
+      { m: 1, u: '', n: 'Ei' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 2, u: 'EL', n: 'Zimt' },
+      { m: 100, u: 'g', n: 'brauner Zucker' },
+      { m: 50, u: 'g', n: 'Butter zum Bestreichen' }
+    ],
+    schritte: [
+      'Mehl, Hefe, Zucker und Salz mischen. Milch lauwarm erwärmen, mit der weichen Butter und dem Ei dazugeben und mindestens 5 Minuten zu einem glatten, weichen Teig kneten.',
+      'Den Teig abgedeckt 60 Minuten gehen lassen, bis er sich sichtbar vergrößert hat.',
+      'Den Teig auf bemehlter Fläche zu einem Rechteck von etwa 35 × 25 cm ausrollen. Die weiche Butter daraufstreichen, Zimt und braunen Zucker mischen und gleichmäßig darüberstreuen.',
+      'Von der langen Seite her aufrollen und in 12 Scheiben schneiden. Die Schnecken mit Abstand in eine gefettete Form setzen und noch 15 Minuten gehen lassen.',
+      'Bei 180 °C 20–25 Minuten backen, bis die Schnecken goldbraun sind. Noch warm mit zerlassener Butter bestreichen.'
+    ],
+    tipp: 'Der Teig darf kleben, aber nicht an den Händen hängen – lieber einen Löffel Mehl mehr als zu wenig. Wer die Schnecken über Nacht vorbereiten will: nach dem Schneiden abgedeckt kalt stellen und morgens nur noch gehen lassen und backen.'
+  },
+  {
+    id: 'buchteln',
+    name: 'Buchteln',
+    kicker: 'Gefüllte Hefeknödel aus der Form, mit Marmelade in der Mitte.',
+    shape: 'dome',
+    dough: '#e2b878',
+    accent: '#fdf5e8',
+    tint: '#f7e9d5',
+    zeit: 40,
+    kuehl: 60,
+    stueck: 12,
+    level: 'Mittel',
+    tags: ['Gebäck', 'Fruchtig'],
+    zutaten: [
+      { m: 500, u: 'g', n: 'Mehl' },
+      { m: 1, u: 'Päckchen', n: 'Trockenhefe' },
+      { m: 250, u: 'ml', n: 'Milch' },
+      { m: 80, u: 'g', n: 'Zucker' },
+      { m: 100, u: 'g', n: 'weiche Butter' },
+      { m: 2, u: '', n: 'Eier' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 200, u: 'g', n: 'Konfitüre' },
+      { m: 50, u: 'g', n: 'Butter zum Bestreichen' },
+      { m: 2, u: 'EL', n: 'Puderzucker' }
+    ],
+    schritte: [
+      'Mehl, Hefe, Zucker und Salz mischen. Lauwarme Milch, weiche Butter und Eier dazugeben und 5 Minuten zu einem glatten Teig kneten.',
+      'Den Teig abgedeckt 60 Minuten gehen lassen. Danach in 12 gleich große Stücke teilen und jedes Stück flach drücken.',
+      'Je einen Teelöffel Konfitüre in die Mitte geben, den Teig darüber zusammenschlagen und zu einer Kugel rollen. Die Naht nach unten in eine gefettete Auflaufform setzen.',
+      'Die Buchteln noch 15 Minuten gehen lassen, dann bei 180 °C 25 Minuten backen, bis sie goldbraun sind.',
+      'Noch heiß mit zerlassener Butter bestreichen und vor dem Servieren mit Puderzucker bestäuben.'
+    ],
+    tipp: 'Die Konfitüre vorher glatt rühren und nicht zu viel nehmen – sonst platzt die Naht beim Backen auf. Wer es klassisch mag, gibt eine Prise Zimt in den Teig. Buchteln schmecken am besten am Backtag; aufgewärmt im Ofen werden sie wieder weich.'
+  },
+  {
+    id: 'schoko-muffins',
+    name: 'Schoko-Muffins',
+    kicker: 'Saftige Muffins mit Schokostückchen – in einer Schüssel gerührt.',
+    shape: 'crackle',
+    dough: '#8d6136',
+    accent: '#f6ead8',
+    tint: '#efe0cd',
+    zeit: 30,
+    stueck: 12,
+    level: 'Einfach',
+    tags: ['Schokolade', 'Gebäck'],
+    zutaten: [
+      { m: 250, u: 'g', n: 'Mehl' },
+      { m: 150, u: 'g', n: 'Zucker' },
+      { m: 2, u: 'TL', n: 'Backpulver' },
+      { m: 30, u: 'g', n: 'Kakao' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 2, u: '', n: 'Eier' },
+      { m: 200, u: 'ml', n: 'Milch' },
+      { m: 120, u: 'g', n: 'weiche Butter' },
+      { m: 100, u: 'g', n: 'Schokolade' }
+    ],
+    schritte: [
+      'Den Ofen auf 180 °C Ober-/Unterhitze vorheizen. Ein Muffinblech mit Papierförmchen auslegen.',
+      'Mehl, Zucker, Backpulver, Kakao und Salz in einer Schüssel mischen.',
+      'Eier, Milch und weiche Butter verrühren und in einem Rutsch unter die trockenen Zutaten rühren, bis gerade kein Mehl mehr zu sehen ist. Die gehackte Schokolade unterheben.',
+      'Den Teig auf die Förmchen verteilen – höchstens zu zwei Dritteln füllen. Bei 180 °C 20–25 Minuten backen. Stäbchenprobe: Es soll nur noch ein Krümel kleben bleiben.'
+    ],
+    tipp: 'Muffins werden am saftigsten, wenn der Teig nur kurz gerührt wird – Klümpchen sind kein Fehler. Die Schokolade vorher in kleine Stücke hacken; Schokotropfen bleiben besser in der Mitte. Nach dem Backen fünf Minuten in der Form lassen, dann herausnehmen.'
+  },
+  {
+    id: 'vegane-pancakes',
+    name: 'Vegane Pancakes',
+    kicker: 'Fluffige Pfannkuchen ohne Ei und Milch – mit Haferdrink und Öl.',
+    shape: 'circle',
+    dough: '#e3c48e',
+    accent: '#fdf7ea',
+    tint: '#f7eedc',
+    zeit: 20,
+    stueck: 8,
+    stueckSchritt: 1,
+    stueckMax: 24,
+    level: 'Einfach',
+    tags: ['Vegan', 'Gebäck', 'Schnell'],
+    zutaten: [
+      { m: 200, u: 'g', n: 'Mehl' },
+      { m: 2, u: 'TL', n: 'Backpulver' },
+      { m: 1, u: 'EL', n: 'Zucker' },
+      { m: 1, u: 'TL', n: 'Zimt' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 300, u: 'ml', n: 'Haferdrink' },
+      { m: 2, u: 'EL', n: 'Öl' },
+      { m: 1, u: 'TL', n: 'Apfelessig' }
+    ],
+    schritte: [
+      'Mehl, Backpulver, Zucker, Zimt und Salz in einer Schüssel mischen.',
+      'Haferdrink, Öl und Apfelessig verrühren. Der Essig lässt den Teig mit dem Backpulver aufgehen – deshalb erst kurz vor dem Backen dazugeben.',
+      'Die feuchten Zutaten in einem Rutsch unter die trockenen rühren, nur bis kein Mehl mehr zu sehen ist. Den Teig 5 Minuten stehen lassen.',
+      'Eine beschichtete Pfanne bei mittlerer Hitze erwärmen und je eine kleine Kelle Teig hineingeben. 2–3 Minuten backen, wenden und noch 1–2 Minuten fertig backen. Fertige Pancakes im Ofen bei 80 °C warm halten.'
+    ],
+    tipp: 'Haferdrink statt Sojamilch macht die Pancakes etwas herzhafter und passt gut zu Zimt und Apfel. Wer es süßer mag, gibt eine zerdrückte Banane in den Teig und lässt den Zucker weg. Der Teig hält sich zugedeckt einen Tag im Kühlschrank.'
+  },
+  {
+    id: 'streuselkuchen',
+    name: 'Streuselkuchen',
+    kicker: 'Saftiger Apfelkuchen vom Blech mit dicken Butterstreuseln.',
+    shape: 'rect',
+    dough: '#e0b57a',
+    accent: '#fdf3e2',
+    tint: '#f6e8d3',
+    zeit: 45,
+    stueck: 16,
+    level: 'Mittel',
+    tags: ['Gebäck', 'Klassiker'],
+    zutaten: [
+      { m: 400, u: 'g', n: 'Mehl' },
+      { m: 1, u: 'Päckchen', n: 'Backpulver' },
+      { m: 150, u: 'g', n: 'Zucker' },
+      { m: 200, u: 'g', n: 'weiche Butter' },
+      { m: 2, u: '', n: 'Eier' },
+      { m: 150, u: 'ml', n: 'Milch' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 1, u: 'TL', n: 'Zimt' },
+      { m: 500, u: 'g', n: 'Äpfel' },
+      { m: 80, u: 'g', n: 'brauner Zucker' }
+    ],
+    schritte: [
+      'Den Ofen auf 180 °C Ober-/Unterhitze vorheizen und ein Blech mit Backpapier auslegen.',
+      'Für den Teig 250 g Mehl, Backpulver, Zucker, Salz, 100 g weiche Butter, Eier und Milch zu einem glatten Rührteig verrühren und auf dem Blech verstreichen.',
+      'Die Äpfel schälen, in Spalten schneiden und dicht auf dem Teig verteilen. Mit Zimt bestreuen.',
+      'Für die Streusel 150 g Mehl, 100 g weiche Butter und braunen Zucker mit den Fingern verreiben, bis grobe Streusel entstehen. Über die Äpfel streuen.',
+      'Bei 180 °C 35–40 Minuten backen, bis die Streusel goldbraun sind. In der Form auskühlen lassen und in 16 Stücke schneiden.'
+    ],
+    tipp: 'Die Äpfel vor dem Belegen kurz in Zitronensaft wenden, dann bleiben sie hell. Wer Streusel mag, macht die doppelte Menge – sie halten sich in einer Dose drei Tage und passen auch auf Muffins. Der Kuchen schmeckt am zweiten Tag fast besser.'
+  },
+  {
+    id: 'pistazien-cookies',
+    name: 'Pistazien-Cookies',
+    kicker: 'Knusprige Kekse mit Pistazien und weißer Schokolade.',
+    shape: 'circle',
+    dough: '#d9c08a',
+    accent: '#fdf7ec',
+    tint: '#f3ecd9',
+    zeit: 25,
+    stueck: 20,
+    level: 'Einfach',
+    tags: ['Nüsse', 'Schnell'],
+    zutaten: [
+      { m: 200, u: 'g', n: 'Mehl' },
+      { m: 1, u: 'TL', n: 'Backpulver' },
+      { m: 120, u: 'g', n: 'weiche Butter' },
+      { m: 100, u: 'g', n: 'Zucker' },
+      { m: 1, u: '', n: 'Ei' },
+      { m: 1, u: 'Prise', n: 'Salz' },
+      { m: 80, u: 'g', n: 'Pistazien' },
+      { m: 80, u: 'g', n: 'weiße Schokolade' }
+    ],
+    schritte: [
+      'Den Ofen auf 175 °C Ober-/Unterhitze vorheizen und zwei Bleche mit Backpapier belegen.',
+      'Weiche Butter und Zucker cremig rühren, das Ei und eine Prise Salz unterrühren.',
+      'Mehl und Backpulver mischen und kurz unterrühren. Pistazien und weiße Schokolade hacken und unter den Teig heben.',
+      'Mit zwei Teelöffeln kleine Häufchen auf das Blech setzen, mit Abstand. Bei 175 °C 12–14 Minuten backen, bis die Ränder goldbraun sind.',
+      'Auf dem Blech fünf Minuten abkühlen lassen, dann auf ein Gitter heben.'
+    ],
+    tipp: 'Pistazien nur grob hacken – ganze Stücke machen die Kekse interessanter. Die Cookies sehen nach dem Backen noch etwas weich aus; sie festigen sich beim Abkühlen. In einer Blechdose halten sie sich zwei Wochen.'
   }
 ];
 
@@ -1172,5 +1432,13 @@ window.RECIPE_TRAITS = {
   'schoko-nuss-cookies': ['schoko', 'nussig', 'knusprig'],
   'zimt-schweineoehrchen': ['knusprig', 'zimtig', 'schnell'],
   'johannisbeer-plaetzchen': ['fruchtig', 'muerbe', 'gefuellt'],
-  'herzwaffeln': ['weich', 'schnell', 'klassisch']
+  'herzwaffeln': ['weich', 'schnell', 'klassisch', 'waffel', 'gebaeck'],
+  'buttermilch-pancakes': ['weich', 'schnell', 'klassisch', 'pancake', 'neu'],
+  'apfel-waffeln': ['weich', 'fruchtig', 'schnell', 'waffel', 'gebaeck', 'neu'],
+  'zimtschnecken': ['weich', 'zimtig', 'klassisch', 'gebaeck', 'neu'],
+  'buchteln': ['weich', 'fruchtig', 'gefuellt', 'gebaeck', 'neu'],
+  'schoko-muffins': ['schoko', 'weich', 'gebaeck', 'neu'],
+  'vegane-pancakes': ['vegan', 'weich', 'schnell', 'pancake', 'neu'],
+  'streuselkuchen': ['fruchtig', 'zimtig', 'klassisch', 'gebaeck', 'neu'],
+  'pistazien-cookies': ['nussig', 'knusprig', 'schoko', 'neu']
 };
