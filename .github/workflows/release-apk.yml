@@ -1,0 +1,35 @@
+name: Android-APK ans Release hängen
+
+# Die APK wird lokal mit ./android/build.sh gebaut und geprüft. Dieser Job
+# prüft die Prüfsumme der abgelegten Datei und hängt sie an das Release.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/release/**'
+      - '.github/workflows/release-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prüfsumme kontrollieren
+        run: cd android/release && sha256sum -c SHA256SUMS
+
+      - name: APK an das Release hängen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v1.0.0
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Keksdose 1.0.0 – Android-App" \
+              --notes "Android-App der Keksdose."
+          fi
+          gh release upload "$TAG" android/release/Keksdose-1.0.0.apk --clobber
+          gh release view "$TAG" --json assets --jq '.assets[].name'
