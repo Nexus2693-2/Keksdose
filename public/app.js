@@ -363,10 +363,10 @@
     return list;
   }
 
-  function cardHTML(r, index) {
+  function cardHTML(r, index, intro = false) {
     const num = String(index + 1).padStart(2, '0');
     return `
-      <article class="card" data-id="${esc(r.id)}" tabindex="0" role="button"
+      <article class="card${intro ? ' card-in' : ''}" style="--i:${Math.min(index, 9)}" data-id="${esc(r.id)}" tabindex="0" role="button"
         aria-label="Rezept ${esc(r.name)} öffnen">
         <div class="card-art" style="--tint:${esc(r.tint)}">
           <span class="card-num">${num}</span>
@@ -384,9 +384,13 @@
       </article>`;
   }
 
+  let gridIntroShown = false;
+
   function renderGrid() {
     const list = visibleRecipes();
-    el.grid.innerHTML = list.map(cardHTML).join('');
+    const intro = !gridIntroShown;
+    gridIntroShown = true;
+    el.grid.innerHTML = list.map((r, i) => cardHTML(r, i, intro)).join('');
 
     const total = RECIPES.length;
     el.info.textContent = list.length === total
@@ -965,12 +969,20 @@
     </div>`;
   }
 
+  let shownListCount = 0;
+
   function renderList() {
     const count = listState.items.length;
     if (el.listCount) {
       el.listCount.textContent = String(count);
       el.listCount.hidden = count === 0;
+      if (count !== shownListCount) {
+        el.listCount.classList.remove('pop');
+        void el.listCount.offsetWidth;
+        if (count) el.listCount.classList.add('pop');
+      }
     }
+    shownListCount = count;
     if (el.listToggle) {
       el.listToggle.setAttribute('aria-label', count
         ? `Einkaufsliste mit ${count} ${count === 1 ? 'Rezept' : 'Rezepten'} öffnen`
@@ -1003,6 +1015,19 @@
     }, 300);
   }
 
+  let toastTimer = 0;
+
+  function toast(message) {
+    const node = document.getElementById('toast');
+    if (!node) return;
+    node.textContent = message;
+    node.classList.remove('show');
+    void node.offsetWidth;
+    node.classList.add('show');
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => node.classList.remove('show'), 2600);
+  }
+
   function addToList() {
     const r = state.open;
     if (!r) return;
@@ -1012,6 +1037,7 @@
     else listState.items.push({ id: r.id, factor });
     saveList();
     renderList();
+    toast(`${r.name} auf der Einkaufsliste · ${piecesLabel(r, factor)}`);
 
     const btn = el.drawer.querySelector('#addToList');
     if (!btn) return;
@@ -2288,6 +2314,13 @@
     bakeEl.meta.textContent = info.meta;
     bakeEl.body.innerHTML = info.body;
 
+    // Jeder Schritt gleitet kurz nach, damit der Wechsel sichtbar ist.
+    bakeEl.root.classList.remove('step-in');
+    if (!bakeEl.root.hidden) {
+      void bakeEl.root.offsetWidth;
+      bakeEl.root.classList.add('step-in');
+    }
+
     bakeEl.stepLabel.textContent = `Schritt ${plan.step + 1} von ${total}`;
     bakeEl.progressTime.textContent = `fertig um ${clock(sched.end)}`;
     bakeEl.bar.style.width = `${Math.round(((plan.step + 1) / total) * 100)}%`;
@@ -2900,9 +2933,67 @@
     ).join('');
   }
 
+  /* ---------- Bewegung ---------- */
+  // Ein Beobachter für alles: Abschnitte blenden beim Scrollen ein, die
+  // Navigation merkt sich den gelesenen Abschnitt, die Kopfzeile bekommt Tiefe.
+  // Kein Scroll-Listener, also keine Arbeit pro Bild.
+  function setupMotion() {
+    const reduceMotion = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!reduceMotion && 'IntersectionObserver' in window) {
+      const targets = document.querySelectorAll('.section-head, .finder-card, .plan-card, .tips .tip, .tips-extra > *, .site-footer');
+      const revealIO = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('in');
+          observer.unobserve(entry.target);
+        });
+      }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
+
+      targets.forEach((node) => {
+        // Was beim Laden schon zu sehen ist, bleibt einfach stehen.
+        if (node.getBoundingClientRect().top < window.innerHeight * 0.92) return;
+        const siblings = node.parentElement ? [...node.parentElement.children] : [];
+        node.style.setProperty('--d', String(Math.min(siblings.indexOf(node), 4)));
+        node.classList.add('reveal');
+        revealIO.observe(node);
+      });
+    }
+
+    if (!('IntersectionObserver' in window)) return;
+
+    const sentinel = document.createElement('div');
+    sentinel.className = 'scroll-sentinel';
+    sentinel.setAttribute('aria-hidden', 'true');
+    el.body.insertBefore(sentinel, el.body.firstChild);
+    new IntersectionObserver(([entry]) => {
+      el.body.classList.toggle('is-scrolled', !entry.isIntersecting);
+    }).observe(sentinel);
+
+    const links = [...document.querySelectorAll('.site-nav a[href^="#"]')];
+    const linkById = new Map(links.map((link) => [link.hash.slice(1), link]));
+    const navIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        links.forEach((link) => {
+          const active = link === linkById.get(entry.target.id);
+          link.classList.toggle('is-active', active);
+          if (active) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      });
+    }, { rootMargin: '-42% 0px -50% 0px' });
+    linkById.forEach((link, id) => {
+      const section = document.getElementById(id);
+      if (section) navIO.observe(section);
+    });
+  }
+
   renderChips();
   renderGrid();
   renderHeroArt();
+  setupMotion();
 
   loadPlan();
   const planFromLink = applyPlanHash();

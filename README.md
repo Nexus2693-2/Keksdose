@@ -21,6 +21,13 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - **In den Kalender:** lädt eine `.ics`-Datei mit allen Stationen als Termine.
 - **Offline:** `sw.js` legt die Seite nach dem ersten Besuch im Cache ab, `manifest.webmanifest` macht sie installierbar. Bei jeder Veröffentlichung `VERSION` in `public/sw.js` hochzählen, sonst bleibt die alte Hülle aktiv.
 
+## Bewegung und Bedienung
+
+- **Einblenden beim Scrollen:** Abschnitte, Rezeptkarten und Tipps kommen mit kurzer Staffelung ins Bild; auf der Startseite atmen die Kekskacheln langsam.
+- **Direkte Rückmeldung:** Karten bekommen beim Überfahren einen Lichtstreif, Knöpfe geben beim Drücken nach, der Zähler der Einkaufsliste hüpft bei einem neuen Rezept, und eine kurze Meldung am unteren Rand bestätigt „auf die Einkaufsliste“.
+- **Navigation:** Der gelesene Abschnitt wird in der Kopfzeile markiert; Anker landen wegen `scroll-margin-top` nicht unter der klebenden Kopfzeile, und Sprungmarken haben einen sichtbaren Tastaturfokus.
+- **Ruhige Technik:** Alle Effekte laufen über `transform`, `translate`, `scale` und `opacity`, also ohne Layout-Arbeit pro Bild. Es gibt keinen Scroll-Listener: Ein `IntersectionObserver` übernimmt Einblenden, Kopfzeilen-Tiefe und Abschnittsmarkierung. `prefers-reduced-motion` schaltet alle Animationen ab.
+
 ## Backplan einstellen
 
 - **Bleche gleichzeitig** (1–3): Bleche mit derselben Temperatur backen in einem Rutsch; der Plan fasst sie zu Ofengängen zusammen und rechnet zwei Minuten mehr Backzeit ein.

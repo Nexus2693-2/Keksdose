@@ -2011,3 +2011,222 @@ a { color: inherit; }
     color: #6b5a4a;
   }
 }
+
+/* ---------- Bewegung, Übergänge und Feedback ---------- */
+/* Alles läuft über transform, translate, scale und opacity: Diese Effekte
+   zeichnet der Browser auf der Grafikkarte, ohne das Layout neu zu berechnen. */
+::selection { background: rgba(150, 49, 43, .16); }
+
+:where(a, button, input, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid rgba(150, 49, 43, .5);
+  outline-offset: 2px;
+}
+
+/* Anker landen nicht unter der klebenden Kopfzeile. */
+section[id] { scroll-margin-top: 92px; }
+
+.scroll-sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.site-header { transition: background .3s var(--ease), box-shadow .3s var(--ease); }
+body.is-scrolled .site-header {
+  background: rgba(247, 241, 230, .93);
+  box-shadow: 0 10px 26px -22px rgba(60, 38, 22, .75);
+}
+
+/* Navigation: der gelesene Abschnitt bekommt einen feinen Strich. */
+.site-nav a { position: relative; }
+.site-nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform .28s var(--ease);
+}
+.site-nav a:hover::after { transform: scaleX(.5); }
+.site-nav a.is-active { color: var(--ink); }
+.site-nav a.is-active::after { transform: scaleX(1); }
+
+/* Startseite: Text und Kekskacheln kommen kurz nacheinander ins Bild,
+   die Kekse atmen anschließend ganz langsam. */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tile-in {
+  from { opacity: 0; scale: .94; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes tile-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
+}
+.hero-text > * { animation: hero-rise .62s var(--ease) backwards; }
+.hero-text > *:nth-child(1) { animation-delay: .04s; }
+.hero-text > *:nth-child(2) { animation-delay: .12s; }
+.hero-text > *:nth-child(3) { animation-delay: .2s; }
+.hero-text > *:nth-child(4) { animation-delay: .28s; }
+.hero-art .tile {
+  animation: tile-in .68s var(--ease) backwards;
+  transition: translate .38s var(--ease), box-shadow .38s var(--ease);
+}
+.hero-art .t1 { animation-delay: .18s; }
+.hero-art .t2 { animation-delay: .28s; }
+.hero-art .t3 { animation-delay: .38s; }
+.hero-art .tile svg { animation: tile-bob 6.5s ease-in-out infinite; }
+.hero-art .t1 svg { animation-delay: -.4s; }
+.hero-art .t2 svg { animation-delay: -2.3s; }
+.hero-art .t3 svg { animation-delay: -4.1s; }
+.hero-art .tile:hover { translate: 0 -8px; }
+
+/* Rezeptkarten: ein weicher Lichtstreif über dem Motiv beim Überfahren. */
+.card-art::after {
+  content: "";
+  position: absolute;
+  inset: -20% -45%;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, .5) 50%, transparent 58%);
+  transform: translateX(-72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .72s var(--ease), opacity .3s var(--ease);
+}
+.card:hover .card-art::after,
+.card:focus-visible .card-art::after { transform: translateX(72%); opacity: 1; }
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.card.card-in {
+  animation: card-in .5s var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Kurzes Nachgeben beim Drücken – fühlt sich wie ein echter Knopf an. */
+.btn:active,
+.chip:active,
+.list-btn:active,
+.hit:active,
+.finder-option:active,
+.plan-preset:active,
+.gear-chip:active,
+.scale-btns button:active,
+.card:active { scale: .97; }
+
+/* Abschnitte blenden sich ein, sobald sie ins Bild kommen (nur beim Scrollen). */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .62s var(--ease), transform .62s var(--ease);
+  transition-delay: calc(var(--d, 0) * 55ms);
+}
+.reveal.in { opacity: 1; transform: none; }
+
+/* Rezept-Drawer: Kopf, Motiv und Inhalt kommen gestaffelt herein. */
+@keyframes drawer-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.drawer.open:not(.list-drawer) .drawer-head,
+.drawer.open:not(.list-drawer) .drawer-art,
+.drawer.open:not(.list-drawer) .drawer-body > * { animation: drawer-in .44s var(--ease) backwards; }
+.drawer.open:not(.list-drawer) .drawer-art { animation-delay: .05s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(1) { animation-delay: .1s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(2) { animation-delay: .14s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(3) { animation-delay: .18s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(4) { animation-delay: .22s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(5) { animation-delay: .26s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(6) { animation-delay: .3s; }
+.drawer.open:not(.list-drawer) .drawer-body > *:nth-child(n+7) { animation-delay: .32s; }
+
+/* Finder und Panne-Klappen wechseln nicht hart, sondern gleiten kurz nach. */
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.finder-panel:not([hidden]) { animation: fade-rise .34s var(--ease) backwards; }
+.trouble-item[open] p { animation: fade-rise .26s var(--ease) backwards; }
+
+/* Backmodus: Überlagerung blendet ein, jeder Schritt gleitet nach. */
+@keyframes bake-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes bake-shell-in {
+  from { opacity: 0; transform: translateY(18px) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bake-swap {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.bake:not([hidden]) { animation: bake-in .26s ease-out; }
+.bake:not([hidden]) .bake-shell { animation: bake-shell-in .42s var(--ease) backwards; }
+.bake.step-in .bake-step { animation: bake-swap .34s var(--ease) backwards; }
+
+/* Zähler an der Einkaufsliste hüpft, wenn ein Rezept dazukommt. */
+@keyframes badge-pop {
+  0% { scale: 1; }
+  45% { scale: 1.32; }
+  100% { scale: 1; }
+}
+.list-count.pop { animation: badge-pop .42s var(--ease); }
+
+/* Kurze Rückmeldung am unteren Rand, ohne den Blick zu stehlen. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 95;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: rgba(36, 26, 19, .95);
+  color: #fbf6ec;
+  font-size: 13.5px;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .8);
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  pointer-events: none;
+  transition: opacity .25s var(--ease), transform .25s var(--ease);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .hero-text > *,
+  .hero-art .tile,
+  .hero-art .tile svg,
+  .card.card-in,
+  .drawer.open:not(.list-drawer) .drawer-head,
+  .drawer.open:not(.list-drawer) .drawer-art,
+  .drawer.open:not(.list-drawer) .drawer-body > *,
+  .bake:not([hidden]),
+  .bake:not([hidden]) .bake-shell,
+  .bake.step-in .bake-step,
+  .finder-panel:not([hidden]),
+  .trouble-item[open] p,
+  .list-count.pop { animation: none !important; }
+}
+
+@media print {
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .toast, .scroll-sentinel { display: none !important; }
+  .hero-text > *, .hero-art .tile, .hero-art .tile svg,
+  .card.card-in, .drawer-body > *, .finder-panel,
+  .list-count.pop { animation: none !important; }
+  .card-art::after { display: none !important; }
+}
