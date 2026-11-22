@@ -14,6 +14,7 @@ Jede Änderung wird an drei Stellen nachgezogen: Commit auf `main`, Deploy zu Ne
 | 22.11.2026 | Weichere Bedienung: gestaffeltes Einblenden, Keks- und Kartenbewegung, Drawer- und Backmodus-Übergänge, aktive Navigation, Toast-Bestätigung, `prefers-reduced-motion` | `a2e4a27` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 22.11.2026 | Zwei Backmodi: einfach (eine Sorte, ein Blech nach dem anderen, ohne Team/Pause/Zielzeit) und erweitert (mehrere Sorten parallel); Modus im Plan-Link und als Etikett im Backmodus | `c173e0e` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 22.11.2026 | Acht neue Gebäcke (Pancakes, Waffeln, Zimtschnecken, Buchteln, Muffins, Streuselkuchen, Pistazien-Cookies), Gebäck-Filter, Preisschätzung je Sorte und Stück in Karte, Drawer, Einkaufsliste und Finder, Finder mit zehn Fragen und Inspirationsideen | `26bee5a` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
+| 22.11.2026 | Tipps geschärft (konkrete Handgriffe samt Begründung, u. a. Zimtsterne-Trocknen), App-Ankündigung vor der Fußzeile, Vorratscheck mit Mengen je Zutat („zu wenig Mehl (250 g nötig)“) | `a20ed41` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 
 ## Hinweise
 
