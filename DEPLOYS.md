@@ -17,6 +17,7 @@ Jede Änderung wird an drei Stellen nachgezogen: Commit auf `main`, Deploy zu Ne
 | 22.11.2026 | Tipps geschärft (konkrete Handgriffe samt Begründung, u. a. Zimtsterne-Trocknen), App-Ankündigung vor der Fußzeile, Vorratscheck mit Mengen je Zutat („zu wenig Mehl (250 g nötig)“) | `a20ed41` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 22.11.2026 | Reiter „Ankündigungen“ in der Navigation, eigener Abschnitt mit der App-Ankündigung als erster Meldung und Platz für weitere Neuigkeiten | `e53f0a8` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 22.11.2026 | Android-App 1.0.0 (WebView, alle Dateien im APK, ohne Internet-Berechtigung), Release v1.0.0 mit APK, Ankündigung auf „ist da“ mit Download-Link umgestellt | `db33101` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
+| 22.11.2026 | APK zusätzlich öffentlich unter `/downloads/Keksdose-1.0.0.apk` (Repo ist privat), Download-Button zeigt dorthin, App-Build lässt den Download-Ordner aus | `2a566a3` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 
 ## Hinweise
 
