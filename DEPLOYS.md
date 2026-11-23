@@ -19,6 +19,7 @@ Jede Änderung wird an drei Stellen nachgezogen: Commit auf `main`, Deploy zu Ne
 | 22.11.2026 | Android-App 1.0.0 (WebView, alle Dateien im APK, ohne Internet-Berechtigung), Release v1.0.0 mit APK, Ankündigung auf „ist da“ mit Download-Link umgestellt | `db33101` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 22.11.2026 | APK zusätzlich öffentlich unter `/downloads/Keksdose-1.0.0.apk` (Repo ist privat), Download-Button zeigt dorthin, App-Build lässt den Download-Ordner aus | `2a566a3` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 | 23.11.2026 | Mehr Leben ohne Zutun (Rezept-Laufband, atmender Vorspann, Keksbewegung, Krümel und Schein im Startbild, Lichtpunkt auf den Karten), Reiter „App“ in der Kopfzeile, Obtainium-Anleitung und öffentliche Update-Seite `/downloads/` | `4da7f5d` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
+| 23.11.2026 | Handy/Tablet: flache Kopfzeile mit Menü (38 px statt 127 px), einspaltige Karten unter 430 px, kein seitlicher Überlauf; Obtainium liest die öffentlichen GitHub-Releases, Anleitung auf drei Schritte gekürzt; App 1.0.1 mit diesem Website-Stand als Release | `1b8ca9a` | https://keksdose.netlify.app | https://krumel-amp-zimt-63lbpv.freebuff.page |
 
 ## Hinweise
 
