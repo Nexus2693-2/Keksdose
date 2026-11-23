@@ -6,7 +6,8 @@ Deploy aus `public/` über `sites.manifest.json`).
 
 Netlify ist seit 23.11.2026 stillgelegt, weil das Konto-Guthaben aufgebraucht ist
 („Account credit usage exceeded“); dort steht noch der Stand 1.0.1. Freebuff ist
-die einzige Adresse.
+die einzige Adresse. Die frühere Freebuff-Subdomain
+`krumel-amp-zimt-63lbpv.freebuff.page` ist seit dem Umzug stillgelegt.
 
 | Datum | Änderung | Commit |
 | --- | --- | --- |
@@ -29,6 +30,7 @@ die einzige Adresse.
 | 23.11.2026 | „Was hab ich da?“ als eigener Abschnitt `#vorrat`, antippbare Grundzutaten, Live-Stand; App 1.0.2 samt Release v1.0.2; Offline-Hülle v11 | `6b76e7a` |
 | 23.11.2026 | Obtainium liest die Website statt GitHub (Ein-Klick-Link mit HTML-Quelle und Versionsmuster), damit das Repository privat bleiben kann; Freebuff ist die einzige Adresse, Doku auf einen Deploy-Weg vereinfacht; Offline-Hülle v12 | `e052684` |
 | 23.11.2026 | Eigene Gebäcks-Motive statt geliehener Keksformen (Pancakes, Muffins, Buchteln, Zimtschnecken, Palmiers, Streuselkuchen, Krapfen, runde Apfel-Waffel, Schokoladenbrot), Rezeptname als Bildbeschriftung; App 1.0.3 (versionCode 4) samt Release v1.0.3; Offline-Hülle v13 | `5dfd0c8` |
+| 23.11.2026 | Freebuff-Adresse von der alten „Krümel & Zimt“-Subdomain auf https://keksdose-em1cqm.freebuff.site umgezogen; Seiten, Obtainium-Link, Generator und Doku zeigen dorthin; Offline-Hülle v14 | `1dcd587` |
 
 ## Hinweise
 
