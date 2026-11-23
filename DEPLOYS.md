@@ -8,10 +8,8 @@ Jede Änderung wird als Commit auf `main` dokumentiert und unter
 Reserve und liefert denselben Stand unter seiner workers.dev-Adresse; diese
 Adresse steht auf keiner Seite.
 
-Netlify ist seit 23.11.2026 stillgelegt, weil das Konto-Guthaben aufgebraucht ist
-(„Account credit usage exceeded“); dort steht noch der Stand 1.0.1. Die frühere
-Freebuff-Subdomain `krumel-amp-zimt-63lbpv.freebuff.page` ist seit dem Umzug
-stillgelegt.
+Weitere Adressen gibt es nicht. Die frühere Freebuff-Subdomain
+`krumel-amp-zimt-63lbpv.freebuff.page` ist seit dem Umzug stillgelegt.
 
 | Datum | Änderung | Commit |
 | --- | --- | --- |

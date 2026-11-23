@@ -16,7 +16,6 @@ Die Seite läuft unter **https://keksdose.pages.dev** (Cloudflare Pages, Deploy 
 - `cloudflare/worker.js` – Reserve: Worker `keksdose`, liefert `public/` aus dem Repo und cached am Edge (seine Adresse steht auf keiner Seite)
 - `worker.js` + `sites.manifest.json` – Freebuff-Deploy als Spiegel (Worker liefert `public/` aus)
 - `tools/obtainium-link.mjs` – erzeugt den Obtainium-Ein-Klick-Link aus Adresse und Versionsmuster
-- `netlify.toml` – ehemaliger Netlify-Deploy, stillgelegt (Cloudflare ist die Adresse)
 
 ## Teilen, Drucken, Offline
 
@@ -94,8 +93,7 @@ Die Seite läuft an einer Adresse: **https://keksdose.pages.dev**
 - **Hauptadresse:** Cloudflare Pages, Projekt `keksdose`. Veröffentlicht wird `public/` per Direct Upload: Dateien hashen (`SHA-256`, erste 32 Zeichen) und hochladen, dann ein Deployment mit dem `manifest` (Pfad → Hash), Branch `main` und Commit-Hash anlegen. Kein Build, kein Git-Zugriff nötig.
 - **Spiegel:** `https://keksdose-em1cqm.freebuff.site` bleibt erreichbar – Deploy über `sites.manifest.json`, danach veröffentlichen.
 - **Reserve:** Der Worker `keksdose` aus `cloudflare/worker.js` liefert denselben Stand unter seiner workers.dev-Adresse; diese Adresse steht auf keiner Seite.
-- Kein Build, keine Umgebungsvariablen.
-- `netlify.toml` bleibt nur als Erinnerung liegen; Netlify ist seit 23.11.2026 stillgelegt (Konto-Guthaben aufgebraucht) und bekommt keine Deploys mehr.
+- Kein Build, keine Umgebungsvariablen. Nur diese beiden Adressen werden gepflegt.
 
 ## Nach jeder Änderung
 
