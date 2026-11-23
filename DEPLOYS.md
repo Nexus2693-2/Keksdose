@@ -36,6 +36,7 @@ stillgelegt.
 | 23.11.2026 | Freebuff-Adresse von der alten „Krümel & Zimt“-Subdomain auf https://keksdose-em1cqm.freebuff.site umgezogen; Seiten, Obtainium-Link, Generator und Doku zeigen dorthin; Offline-Hülle v14 | `1dcd587` |
 | 23.11.2026 | Internen Repository-Hinweis von den öffentlichen Seiten entfernt; Offline-Hülle v15 | `e167d71` |
 | 23.11.2026 | Cloudflare Worker `keksdose` angelegt, der `public/` aus dem Repo ausliefert und am Edge cached | `0256e22` |
+| 23.11.2026 | Umzug auf Cloudflare: Hauptadresse https://keksdose.opboxnull.workers.dev, Worker liefert auch endungslose Dateien wie `SHA256SUMS` und cached nur noch eine Minute (vorher hielt ein zweiter Cache den alten Stand eine Stunde), Seiten/Obtainium-Link/Doku zeigen dorthin, Repo-Homepage umgestellt; Offline-Hülle v16 | `97c729e` |
 
 ## Hinweise
 

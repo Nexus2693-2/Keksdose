@@ -99,6 +99,6 @@ Die Seite läuft an einer Adresse: **https://keksdose.opboxnull.workers.dev**
 ## Nach jeder Änderung
 
 1. Änderung in `public/` umsetzen und lokal prüfen.
-2. Committen und nach `main` pushen — die Historie ist die Dokumentation der Arbeitsschritte. Der Cloudflare Worker liefert danach den neuen Stand (Edge-Cache bis zu 5 Minuten), die Freebuff-Adresse zieht per `sites_deploy` nach.
+2. Committen und nach `main` pushen — die Historie ist die Dokumentation der Arbeitsschritte. Der Cloudflare Worker liefert danach den neuen Stand (Edge-Cache bis zu einer Minute), die Freebuff-Adresse zieht per `sites_deploy` nach.
 3. Bei jeder Veröffentlichung `VERSION` in `public/sw.js` hochzählen.
 3. Freebuff deployen, veröffentlichen und die Live-Adresse prüfen.

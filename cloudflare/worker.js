@@ -1,6 +1,9 @@
 // Cloudflare Worker: liefert die Keksdose-Website aus dem öffentlichen Repo
-// (raw.githubusercontent.com) aus und cached jede Datei am Edge.
+// (raw.githubusercontent.com) aus und cached jede Datei kurz am Edge.
 const ORIGIN = 'https://raw.githubusercontent.com/Nexus2693-2/Keksdose/main/public';
+
+// Bricht den alten, eine Stunde haltbaren Zwischenspeicher des früheren Workers.
+const BUST = '?stand=2';
 
 const TYPES = {
   html: 'text/html; charset=utf-8',
@@ -29,22 +32,22 @@ function typeFor(key) {
   return TYPES[ext] || 'application/octet-stream';
 }
 
+// Ein einziger Cache: der Edge-Cache unten (60 s). Kein zweiter Cache auf dem
+// GitHub-Abruf, sonst stünde nach einem Push bis zu eine Stunde der alte Stand.
 async function load(key) {
-  const upstream = await fetch(`${ORIGIN}/${key}`, {
-    cf: { cacheEverything: true, cacheTtl: 3600 },
-  });
+  const upstream = await fetch(`${ORIGIN}/${key}${BUST}`);
   if (!upstream.ok) return null;
   const body = await upstream.arrayBuffer();
   return new Response(body, {
     headers: {
       'content-type': typeFor(key),
-      'cache-control': 'public, max-age=300',
+      'cache-control': 'public, max-age=60',
     },
   });
 }
 
 async function serve(key, cache, ctx) {
-  const cacheKey = new Request(`https://keksdose.internal/${key}`);
+  const cacheKey = new Request(`https://keksdose.internal/v2/${key}`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
   const res = await load(key);
