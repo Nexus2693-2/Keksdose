@@ -93,6 +93,7 @@ Die Seite läuft an zwei Orten, beide werden bei jeder Änderung aktualisiert:
 
 Netlify baut nichts: `netlify.toml` setzt `command = ""` und `publish = "public"`.
 Das Zugriffstoken liegt lokal in `NETLIFY_AUTH_TOKEN` und ist per `.gitignore` ausgeschlossen.
+Solange das Netlify-Guthaben aufgebraucht ist, lehnt Netlify neue Deploys ab („Account credit usage exceeded“); dann bleibt Freebuff die aktuelle Adresse, bis wieder Guthaben da ist.
 
 ## Nach jeder Änderung
 
