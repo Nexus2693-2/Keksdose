@@ -1,11 +1,12 @@
 # Veröffentlichungen
 
 Jede Änderung wird als Commit auf `main` dokumentiert und unter
-**https://keksdose.opboxnull.workers.dev** veröffentlicht. Hauptadresse ist der
-Cloudflare Worker `keksdose` (`cloudflare/worker.js`): er liefert `public/` aus
-dem öffentlichen Repo aus und cached am Edge, also ist der Push die
-Veröffentlichung. Spiegel bleibt **https://keksdose-em1cqm.freebuff.site**
-(Freebuff Sites, Deploy aus `public/` über `sites.manifest.json`).
+**https://keksdose.pages.dev** veröffentlicht (Cloudflare Pages, Projekt
+`keksdose`, Deploy aus `public/` per Direct Upload). Spiegel bleibt
+**https://keksdose-em1cqm.freebuff.site** (Freebuff Sites, Deploy aus `public/`
+über `sites.manifest.json`). Der Worker `keksdose` in `cloudflare/` bleibt als
+Reserve und liefert denselben Stand unter seiner workers.dev-Adresse; diese
+Adresse steht auf keiner Seite.
 
 Netlify ist seit 23.11.2026 stillgelegt, weil das Konto-Guthaben aufgebraucht ist
 („Account credit usage exceeded“); dort steht noch der Stand 1.0.1. Die frühere
