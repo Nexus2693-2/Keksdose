@@ -25,12 +25,12 @@ jobs:
       - name: APK an das Release hängen
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: v1.0.2
-          APK: public/downloads/Keksdose-1.0.2.apk
+          TAG: v1.0.3
+          APK: public/downloads/Keksdose-1.0.3.apk
         run: |
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --title "Keksdose 1.0.2 – Android-App" \
-              --notes "Website-Fassung mit eigenem Vorrats-Abschnitt: „Was hab ich da?“ zeigt schon auf der Startseite mit antippbaren Zutaten, welche Rezepte sofort gehen."
+            gh release create "$TAG" --title "Keksdose 1.0.3 – Android-App" \
+              --notes "Website-Fassung mit genaueren Gebäcks-Motiven: Pancakes, Muffins, Buchteln, Zimtschnecken, Palmiers, Streuselkuchen, Krapfen und Waffeln haben eigene Illustrationen statt geliehener Keksformen."
           fi
           gh release upload "$TAG" "$APK" --clobber
           gh release view "$TAG" --json assets --jq '.assets[].name'

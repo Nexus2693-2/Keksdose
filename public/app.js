@@ -84,7 +84,7 @@
 
     switch (shape) {
       case 'star':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Zimtstern">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <path d="M50 6 L61.2 34.6 L91.9 36.4 L68.1 55.9 L75.9 85.6 L50 69 L24.1 85.6 L31.9 55.9 L8.1 36.4 L38.8 34.6 Z"
             fill="${dough}" ${stroke} stroke-linejoin="round"/>
           <g transform="translate(50 50) scale(.66) translate(-50 -50)">
@@ -95,7 +95,7 @@
         </svg>`;
 
       case 'crescent':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Vanillekipferl">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <g transform="rotate(-6 50 50)">
             <path d="M11 30 C 20 88, 80 88, 89 30 C 76 62, 24 62, 11 30 Z"
               fill="${dough}" ${stroke} stroke-linejoin="round"/>
@@ -106,7 +106,7 @@
         </svg>`;
 
       case 'swirl':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Spritzgebäck">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <path d="M64 20 C 34 20, 32 48, 50 52 C 70 57, 68 80, 36 80"
             fill="none" stroke="rgba(72,44,24,.22)" stroke-width="20" stroke-linecap="round"/>
           <path d="M64 20 C 34 20, 32 48, 50 52 C 70 57, 68 80, 36 80"
@@ -116,7 +116,7 @@
         </svg>`;
 
       case 'half':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Schwarz-Weiß-Gebäck">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <path d="M50 12 A 38 38 0 0 1 50 88 Z" fill="${accent}"/>
           <path d="M50 12 V 88" stroke="rgba(255,255,255,.35)" stroke-width="1.6"/>
@@ -126,7 +126,7 @@
         </svg>`;
 
       case 'heart':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Lebkuchenherz">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <path d="M50 86 C 14 62, 12 32, 32 24 C 43 20, 50 28, 50 35 C 50 28, 57 20, 68 24 C 88 32, 86 62, 50 86 Z"
             fill="${dough}" ${stroke}/>
           <path d="M31 42 C 40 52, 60 52, 69 42" fill="none" stroke="${accent}" stroke-width="2.6"
@@ -135,7 +135,7 @@
         </svg>`;
 
       case 'dome':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Kokosmakrone">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <path d="M15 76 C 9 40, 31 20, 50 20 C 69 20, 91 40, 85 76 Z"
             fill="${dough}" ${stroke} stroke-linejoin="round"/>
           <path d="M15 76 H 85" stroke="${edge}" stroke-width="2" stroke-linecap="round"/>
@@ -143,7 +143,7 @@
         </svg>`;
 
       case 'circle':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Heidesand">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <path d="M38 30 C 46 40, 43 50, 36 58" fill="none" stroke="rgba(255,255,255,.5)"
             stroke-width="2.4" stroke-linecap="round"/>
@@ -153,7 +153,7 @@
         </svg>`;
 
       case 'crackle':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Brownie-Cookie">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <path d="M30 36 L42 46 L36 56 L48 64" fill="none" stroke="${accent}" stroke-width="2.6"
             stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
@@ -165,7 +165,7 @@
         </svg>`;
 
       case 'linzer':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Linzer Auge">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <defs><mask id="${id}">
             <rect width="100" height="100" fill="#fff"/>
             <circle cx="50" cy="50" r="12.5" fill="#000"/>
@@ -179,7 +179,7 @@
         </svg>`;
 
       case 'almond':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Mandeltaler">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <g fill="${accent}" stroke="${edge}" stroke-width="1.6">
             <ellipse cx="50" cy="29" rx="10" ry="5.4"/>
@@ -193,7 +193,7 @@
         </svg>`;
 
       case 'jamheart':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Himbeerherz">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <path d="M50 86 C 14 62, 12 32, 32 24 C 43 20, 50 28, 50 35 C 50 28, 57 20, 68 24 C 88 32, 86 62, 50 86 Z"
             fill="${dough}" ${stroke}/>
           <g transform="translate(50 54) scale(.32) translate(-50 -54)">
@@ -205,7 +205,7 @@
         </svg>`;
 
       case 'brittle':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Krokanttaler">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <g fill="${r.accent2 || accent}" opacity=".9">
             <rect x="34" y="31" width="13" height="9" rx="2" transform="rotate(-14 40 35)"/>
@@ -219,7 +219,7 @@
         </svg>`;
 
       case 'nougat':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Nougattaler">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <rect x="32" y="32" width="36" height="36" rx="10" fill="${accent}" transform="rotate(9 50 50)"/>
           <path d="M37 43 C 45 51, 57 51, 65 43" fill="none" stroke="${r.accent2 || accent}"
@@ -229,7 +229,7 @@
         </svg>`;
 
       case 'ring':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Genießerkringel">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="33" fill="none" stroke="rgba(72,44,24,.22)" stroke-width="19"/>
           <circle cx="50" cy="50" r="33" fill="none" stroke="${dough}" stroke-width="17"/>
           <circle cx="50" cy="50" r="33" fill="none" stroke="${accent}" stroke-width="7"
@@ -239,7 +239,7 @@
         </svg>`;
 
       case 'oval':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Orangenzunge">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <g transform="rotate(-14 50 50)">
             <ellipse cx="50" cy="50" rx="40" ry="23" fill="${dough}" ${stroke}/>
             <path d="M50 27 A 40 23 0 0 1 50 73 Z" fill="${accent}" opacity=".9"/>
@@ -249,7 +249,7 @@
         </svg>`;
 
       case 'rect':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Schnitte">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <g transform="rotate(-4 50 50)">
             <rect x="15" y="30" width="70" height="42" rx="8" fill="${dough}" ${stroke}/>
             <path d="M23 30 H77 A 8 8 0 0 1 85 38 V45 H15 V38 A 8 8 0 0 1 23 30 Z"
@@ -259,7 +259,7 @@
         </svg>`;
 
       case 'paw':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Tatze">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <g fill="${dough}" ${stroke}>
             <ellipse cx="50" cy="60" rx="21" ry="16"/>
             <ellipse cx="29" cy="35" rx="7.5" ry="9"/>
@@ -271,7 +271,7 @@
         </svg>`;
 
       case 'oat':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Haferkeks">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <g fill="${accent}" opacity=".55">
             <ellipse cx="40" cy="40" rx="8" ry="4.2" transform="rotate(-24 40 40)"/>
@@ -284,7 +284,7 @@
         </svg>`;
 
       case 'taler':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Himbeer-Taler">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="52" cy="55" r="40" fill="${r.rim || dough}" ${stroke}/>
           <circle cx="50" cy="51" r="39" fill="${r.accent2 || accent}"/>
           <circle cx="48" cy="47" r="38" fill="${dough}" ${stroke}/>
@@ -295,7 +295,7 @@
         </svg>`;
 
       case 'waffle':
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Herzwaffel">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <defs><clipPath id="${id}">
             <path d="M50 88 C 12 63, 10 33, 30 24 C 42 19, 50 27, 50 35 C 50 27, 58 19, 70 24 C 90 33, 88 63, 50 88 Z"/>
           </clipPath></defs>
@@ -313,9 +313,140 @@
             fill="none" stroke="${edge}" stroke-width="2.4"/>
         </svg>`;
 
+      case 'pancake':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <ellipse cx="50" cy="79" rx="36" ry="7" fill="rgba(72,44,24,.10)"/>
+          <g stroke="${edge}" stroke-width="2">
+            <ellipse cx="50" cy="68" rx="35" ry="11" fill="${dough}"/>
+            <ellipse cx="51" cy="58" rx="32" ry="10" fill="${dough}"/>
+            <ellipse cx="50" cy="48" rx="29" ry="9" fill="${dough}"/>
+          </g>
+          <g fill="rgba(72,44,24,.14)">
+            <circle cx="42" cy="47" r="1.8"/><circle cx="53" cy="45" r="2.1"/><circle cx="60" cy="49" r="1.6"/><circle cx="47" cy="51" r="1.5"/>
+          </g>
+          <path d="M24 47 C 31 40, 42 38, 50 42 C 58 38, 69 40, 76 47 C 72 51, 64 53, 57 50 C 53 54, 46 54, 42 50 C 35 53, 27 51, 24 47 Z" fill="#a9662c" opacity=".82"/>
+          <rect x="44" y="37" width="13" height="8" rx="2.5" fill="${accent}" stroke="${edge}" stroke-width="1.4" transform="rotate(-7 50 41)"/>
+        </svg>`;
+
+      case 'muffin':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <path d="M29 47 H71 L65 82 Q64.4 88 59 88 H41 Q35.6 88 35 82 Z" fill="${accent}" stroke="${edge}" stroke-width="2"/>
+          <g stroke="rgba(72,44,24,.25)" stroke-width="1.6" stroke-linecap="round">
+            <path d="M38 49 L36 86M47 49 L46 87M55 49 L55 87M64 49 L66 86"/>
+          </g>
+          <path d="M26 47 C 26 30, 34 25, 50 25 C 66 25, 74 30, 74 47 Z" fill="${dough}" ${stroke} stroke-linejoin="round"/>
+          <g fill="#3a2418" opacity=".85">
+            <circle cx="40" cy="39" r="2.6"/><circle cx="50" cy="34" r="2.4"/><circle cx="60" cy="40" r="2.6"/><circle cx="46" cy="44" r="2.1"/><circle cx="57" cy="45" r="2.1"/>
+          </g>
+        </svg>`;
+
+      case 'bun':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <path d="M14 52 C 14 26, 36 14, 50 14 C 64 14, 86 26, 86 52 C 86 74, 70 88, 50 88 C 30 88, 14 74, 14 52 Z"
+            fill="${dough}" ${stroke} stroke-linejoin="round"/>
+          <ellipse cx="50" cy="52" rx="25" ry="23" fill="rgba(255,255,255,.16)"/>
+          <g fill="none" stroke="rgba(72,44,24,.18)" stroke-width="1.8" stroke-linecap="round">
+            <path d="M38 31 C 41 36, 43 39, 45 43M62 31 C 59 36, 57 39, 55 43"/>
+            <path d="M38 73 C 41 68, 43 65, 45 61M62 73 C 59 68, 57 65, 55 61"/>
+          </g>
+          <circle cx="50" cy="52" r="9" fill="rgba(150,40,55,.85)"/>
+          <circle cx="50" cy="52" r="9" fill="none" stroke="rgba(72,44,24,.25)" stroke-width="1.4"/>
+          ${speckles(accent, [[32, 44, 2.2], [68, 46, 2], [40, 66, 1.8], [60, 68, 2.2], [50, 32, 1.8]])}
+          <path d="M27 38 C 33 30, 41 26, 48 25" fill="none" stroke="rgba(255,255,255,.35)"
+            stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'roll':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <circle cx="50" cy="52" r="37" fill="${dough}" ${stroke}/>
+          <path d="M50 52 C 54 46, 63 48, 61 56 C 59 65, 45 66, 40 57 C 34 46, 47 36, 58 39 C 71 42, 75 58, 65 68 C 55 78, 37 73, 31 61 C 25 48, 34 33, 48 31"
+            fill="none" stroke="rgba(94,55,28,.78)" stroke-width="3.6" stroke-linecap="round"/>
+          <path d="M28 44 C 34 52, 44 58, 54 57" fill="none" stroke="${accent}" stroke-width="2.8"
+            stroke-linecap="round" opacity=".85"/>
+          <path d="M22 38 C 28 29, 36 25, 44 24" fill="none" stroke="rgba(255,255,255,.4)"
+            stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'palmier':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <g transform="rotate(-8 50 52)">
+            <ellipse cx="50" cy="52" rx="35" ry="26" fill="${dough}" ${stroke}/>
+            <g fill="none" stroke="${accent}" stroke-width="2.3" stroke-linecap="round" opacity=".75">
+              <path d="M18 41 C 32 35, 68 35, 82 41"/>
+              <path d="M16 50 C 31 44, 69 44, 84 50"/>
+              <path d="M18 59 C 32 65, 68 65, 82 59"/>
+              <path d="M26 34 C 39 40, 61 40, 74 34"/>
+              <path d="M26 70 C 39 64, 61 64, 74 70"/>
+            </g>
+            ${speckles('#ffffff', [[36, 34, 1.9], [64, 32, 1.6], [50, 40, 1.5], [44, 64, 1.7], [62, 66, 1.5]])}
+          </g>
+        </svg>`;
+
+      case 'crumble':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <g transform="rotate(-3 50 52)">
+            <rect x="14" y="40" width="72" height="34" rx="6" fill="${dough}" ${stroke}/>
+            <rect x="14" y="40" width="72" height="11" rx="5" fill="rgba(72,44,24,.10)"/>
+            <g fill="#c9955a" stroke="${edge}" stroke-width="1.2">
+              <circle cx="22" cy="42" r="3.8"/><circle cx="32" cy="40" r="4.4"/><circle cx="43" cy="42" r="3.9"/><circle cx="54" cy="40" r="4.4"/><circle cx="65" cy="42" r="3.8"/><circle cx="76" cy="41" r="4.2"/>
+              <circle cx="27" cy="49" r="4.1"/><circle cx="39" cy="48" r="3.7"/><circle cx="50" cy="49" r="4.3"/><circle cx="61" cy="48" r="3.7"/><circle cx="72" cy="49" r="4.1"/>
+              <circle cx="34" cy="56" r="3.4"/><circle cx="46" cy="55" r="3.6"/><circle cx="58" cy="56" r="3.4"/><circle cx="68" cy="55" r="3.5"/>
+            </g>
+            <path d="M18 60 H82" stroke="rgba(72,44,24,.12)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 66 H82" stroke="rgba(72,44,24,.09)" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>`;
+
+      case 'krapfen':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <circle cx="50" cy="54" r="35" fill="${dough}" ${stroke}/>
+          <circle cx="50" cy="54" r="24" fill="rgba(255,255,255,.18)"/>
+          <circle cx="50" cy="54" r="7" fill="${accent}"/>
+          <circle cx="50" cy="54" r="7" fill="none" stroke="rgba(72,44,24,.2)" stroke-width="1.4"/>
+          <path d="M22 40 C 30 30, 44 26, 54 27" fill="none" stroke="rgba(255,255,255,.4)"
+            stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M28 42 L36 48 L44 42 L52 48 L60 42 L68 48 L74 44" fill="none" stroke="#4a3226"
+            stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+          ${speckles('#ffffff', [[38, 34, 1.8], [62, 38, 1.6], [40, 72, 1.5], [64, 62, 1.5], [30, 52, 1.4]])}
+        </svg>`;
+
+      case 'waffleround':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <defs><clipPath id="${id}"><circle cx="50" cy="52" r="37"/></clipPath></defs>
+          <circle cx="50" cy="52" r="37" fill="${dough}" ${stroke}/>
+          <g clip-path="url(#${id})">
+            <g stroke="${edge}" stroke-width="2.4" opacity=".45" stroke-linecap="round">
+              <path d="M20 15V90M32 12V92M44 10V94M56 10V94M68 12V92M80 15V90"/>
+              <path d="M12 24H88M12 36H88M12 48H88M12 60H88M12 72H88M12 84H88"/>
+            </g>
+            <g fill="#a9713a" opacity=".6">
+              <rect x="33" y="40" width="5" height="4" rx="1.5"/><rect x="58" y="34" width="5" height="4" rx="1.5"/><rect x="48" y="58" width="5" height="4" rx="1.5"/><rect x="66" y="62" width="5" height="4" rx="1.5"/>
+            </g>
+          </g>
+          <circle cx="50" cy="52" r="37" fill="none" stroke="${edge}" stroke-width="2"/>
+          <path d="M28 36 C 36 29, 44 26, 50 26" fill="none" stroke="rgba(255,255,255,.4)"
+            stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+
+      case 'loaf':
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
+          <g transform="rotate(-4 50 52)">
+            <path d="M16 44 C 16 34, 24 28, 34 28 H66 C 76 28, 84 34, 84 44 V72 C 84 80, 78 84, 70 84 H30 C 22 84, 16 80, 16 72 Z"
+              fill="${dough}" ${stroke} stroke-linejoin="round"/>
+            <path d="M22 38 C 30 32, 40 31, 50 35 C 60 31, 70 32, 78 38" fill="none" stroke="rgba(255,255,255,.16)"
+              stroke-width="2.4" stroke-linecap="round"/>
+            <g fill="${accent}" opacity=".85">
+              <ellipse cx="34" cy="52" rx="7" ry="3.6" transform="rotate(-20 34 52)"/>
+              <ellipse cx="56" cy="46" rx="7" ry="3.4" transform="rotate(16 56 46)"/>
+              <ellipse cx="66" cy="62" rx="6.4" ry="3.2" transform="rotate(-12 66 62)"/>
+              <ellipse cx="42" cy="70" rx="6.6" ry="3.2" transform="rotate(24 42 70)"/>
+            </g>
+          </g>
+        </svg>`;
+
       case 'thumbprint':
       default:
-        return `<svg viewBox="0 0 100 100" role="img" aria-label="Engelsauge">
+        return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(r.name)}">
           <circle cx="50" cy="50" r="38" fill="${dough}" ${stroke}/>
           <circle cx="50" cy="50" r="14" fill="${accent}"/>
           <circle cx="50" cy="50" r="14" fill="none" stroke="rgba(72,44,24,.25)" stroke-width="1.6"/>
