@@ -38,6 +38,7 @@ stillgelegt.
 | 23.11.2026 | Internen Repository-Hinweis von den öffentlichen Seiten entfernt; Offline-Hülle v15 | `e167d71` |
 | 23.11.2026 | Cloudflare Worker `keksdose` angelegt, der `public/` aus dem Repo ausliefert und am Edge cached | `0256e22` |
 | 23.11.2026 | Umzug auf Cloudflare: Hauptadresse https://keksdose.opboxnull.workers.dev, Worker liefert auch endungslose Dateien wie `SHA256SUMS` und cached nur noch eine Minute (vorher hielt ein zweiter Cache den alten Stand eine Stunde), Seiten/Obtainium-Link/Doku zeigen dorthin, Repo-Homepage umgestellt; Offline-Hülle v16 | `97c729e` |
+| 23.11.2026 | Adresse ohne Kontonamen: Umzug auf Cloudflare Pages **https://keksdose.pages.dev** (Projekt `keksdose`, Direct Upload mit Commit-Hash), Seiten/Obtainium-Link/Generator/Repo-Homepage/Doku zeigen dorthin, Worker `keksdose` nur noch Reserve; Offline-Hülle v17 | `c89849c` |
 
 ## Hinweise
 
