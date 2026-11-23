@@ -12,18 +12,20 @@ const TYPES = {
   svg: 'image/svg+xml',
   apk: 'application/vnd.android.package-archive',
   txt: 'text/plain; charset=utf-8',
+  sha256sums: 'text/plain; charset=utf-8',
 };
 
-function assetPath(pathname) {
-  let p = pathname;
-  if (p === '/' || p === '') return 'index.html';
-  if (p.endsWith('/')) p += 'index.html';
-  else if (!/\.[a-z0-9]+$/i.test(p)) p += '/index.html';
-  return p.replace(/^\/+/, '');
+// Erlaubte Kandidaten für einen Pfad: eine Datei direkt, sonst die Ordner-Index.
+function assetKeys(pathname) {
+  const rel = pathname.replace(/^\/+/, '');
+  if (rel === '') return ['index.html'];
+  if (rel.endsWith('/')) return [rel + 'index.html'];
+  if (/\.[a-z0-9]+$/i.test(rel)) return [rel];
+  return [rel, rel + '/index.html'];
 }
 
 function typeFor(key) {
-  const ext = key.split('.').pop().toLowerCase();
+  const ext = key.split('/').pop().split('.').pop().toLowerCase();
   return TYPES[ext] || 'application/octet-stream';
 }
 
@@ -41,6 +43,16 @@ async function load(key) {
   });
 }
 
+async function serve(key, cache, ctx) {
+  const cacheKey = new Request(`https://keksdose.internal/${key}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+  const res = await load(key);
+  if (!res) return null;
+  ctx.waitUntil(cache.put(cacheKey, res.clone()));
+  return res;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -50,20 +62,17 @@ export default {
       return new Response('Method Not Allowed', { status: 405, headers: { allow: 'GET, HEAD' } });
     }
 
-    const key = assetPath(url.pathname);
     const cache = caches.default;
-    const cacheKey = new Request(`https://keksdose.internal/${key}`);
-
-    let res = await cache.match(cacheKey);
+    let res = null;
+    for (const key of assetKeys(url.pathname)) {
+      res = await serve(key, cache, ctx);
+      if (res) break;
+    }
     if (!res) {
-      res = await load(key);
-      if (!res) {
-        return new Response('Nicht gefunden', {
-          status: 404,
-          headers: { 'content-type': 'text/plain; charset=utf-8' },
-        });
-      }
-      ctx.waitUntil(cache.put(cacheKey, res.clone()));
+      return new Response('Nicht gefunden', {
+        status: 404,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      });
     }
 
     if (request.method === 'HEAD') {

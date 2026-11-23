@@ -4,7 +4,7 @@ Plätzchen-Rezepte als statische Website: HTML, CSS und JavaScript in `public/`,
 43 Rezepte — Plätzchen, Waffeln, Pancakes und Gebäcke —, Rezept-Finder mit zehn Fragen, Portions-/Ausstecher-Rechner, Preisschätzung je Sorte und Stück, Einkaufsliste, Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
 Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je Sorte, lässt sich als Checkliste drucken, per Link teilen und als Kalenderdatei exportieren; nach dem ersten Besuch läuft die Seite auch ohne Netz (PWA).
 
-Die Seite läuft unter **https://keksdose-em1cqm.freebuff.site**.
+Die Seite läuft unter **https://keksdose.opboxnull.workers.dev** (Cloudflare Worker, der `public/` aus diesem Repo ausliefert).
 
 ## Struktur
 
@@ -13,9 +13,10 @@ Die Seite läuft unter **https://keksdose-em1cqm.freebuff.site**.
 - `public/app.js` – Filter, Rezept-Drawer, Finder, Preisschätzung, Einkaufsliste, Backplan, Backmodus, Vorratscheck
 - `public/recipes.js` – Rezeptdaten
 - `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` – Offline-Hülle und App-Icons
-- `worker.js` + `sites.manifest.json` – Freebuff-Deploy (Worker liefert `public/` aus)
+- `cloudflare/worker.js` – Cloudflare Worker `keksdose` (Hauptadresse): liest die Dateien aus `public/` im Repo und cached sie am Edge
+- `worker.js` + `sites.manifest.json` – Freebuff-Deploy als Spiegel (Worker liefert `public/` aus)
 - `tools/obtainium-link.mjs` – erzeugt den Obtainium-Ein-Klick-Link aus Adresse und Versionsmuster
-- `netlify.toml` – ehemaliger Netlify-Deploy, stillgelegt (Freebuff ist die Adresse)
+- `netlify.toml` – ehemaliger Netlify-Deploy, stillgelegt (Cloudflare ist die Adresse)
 
 ## Teilen, Drucken, Offline
 
@@ -33,7 +34,7 @@ Die Seite läuft unter **https://keksdose-em1cqm.freebuff.site**.
 - **Vorratscheck („Was hab ich da?“):** Zutaten abhaken und auf Wunsch die vorhandene Menge eintragen (g, ml oder Stück). Der Check vergleicht mit dem Rezeptbedarf und meldet „zu wenig Mehl (250 g nötig)“ statt nur „fehlt“; ohne Mengenangabe gilt eine Zutat wie bisher als vorhanden. Seit 1.0.2 hat der Check einen eigenen Abschnitt `#vorrat` zwischen Finder und Rezepten (auch in der Navigation): Dort stehen acht Grundzutaten als antippbare Chips, die Auswahl landet direkt im Vorrat, und eine Zeile darunter sagt, wie viele Rezepte damit sofort gehen und wie viele nur noch eine Zutat brauchen. Der Knopf in der Rezeptleiste bleibt als Abkürzung.
 - **Tipps:** Jedes Rezept endet mit „Gut zu wissen“ — eine konkrete Handlung samt Begründung (Temperatur, Timing, Technik, Lagerung), keine allgemeinen Floskeln. Bei Rezeptänderungen prüft der Test, dass jeder Tipp vorhanden, ausreichend ausführlich und einzigartig ist.
 - **Ankündigungen (#ankuendigungen):** eigener Abschnitt mit Navigationseintrag „Ankündigungen“ und dem Reiter **App** in der Kopfzeile (beide zeigen auf denselben Abschnitt). Er startet mit der App-Ankündigung („Die Keksdose-App ist da“, Etikett „Android · Version 1.0.3“, Download-Button) und ist als Liste angelegt, in die weitere Neuigkeiten einfach als `.news-item` dazukommen. In der Druckansicht ausgeblendet.
-- **Obtainium:** Unter der App-Ankündigung steht in `.app-update` ein Ein-Klick-Link, der die App in [Obtainium](https://obtainium.imranr.dev) einträgt – HTML-Quelle `https://keksdose-em1cqm.freebuff.site/downloads/`, Versionsmuster und fertige Einstellungen inklusive. Quelle ist also die Website, nicht GitHub; das Repository kann privat bleiben. Wer den Knopf nicht nutzen kann, trägt die Adresse von Hand ein. In der App selbst ist der Block ausgeblendet (`.is-app .app-update`).
+- **Obtainium:** Unter der App-Ankündigung steht in `.app-update` ein Ein-Klick-Link, der die App in [Obtainium](https://obtainium.imranr.dev) einträgt – HTML-Quelle `https://keksdose.opboxnull.workers.dev/downloads/`, Versionsmuster und fertige Einstellungen inklusive. Quelle ist also die Website, nicht GitHub; das Repository kann privat bleiben. Wer den Knopf nicht nutzen kann, trägt die Adresse von Hand ein. In der App selbst ist der Block ausgeblendet (`.is-app .app-update`).
 - **Handy und Tablet:** Bis 900 px Breite liegt die Navigation in einem aufklappbaren **Menü** (Marke, „Menü“, Einkaufsliste in einer flachen Kopfzeile, 38 px hoch statt vormals 127 px in zwei Reihen). Der Reiter „App“ erscheint dort als eigener Eintrag. Unter 430 px werden Karten einspaltig, Überschrift und Abstände kleiner. Geprüft ohne seitlichen Überlauf bei 320, 360, 390, 430, 640, 768, 834, 900, 920, 1024 und 1280 px.
 
 ## Bewegung und Bedienung
@@ -88,14 +89,16 @@ python3 -m http.server 3000 --bind 0.0.0.0 --directory public
 
 ## Veröffentlichen
 
-Die Seite läuft an einer Adresse: **https://keksdose-em1cqm.freebuff.site**
+Die Seite läuft an einer Adresse: **https://keksdose.opboxnull.workers.dev**
 
-- Deploy über `sites.manifest.json` (Worker liefert `public/` aus), danach veröffentlichen.
-- Kein Build, keine Umgebungsvariablen, keine zweite Adresse.
+- **Hauptadresse:** Cloudflare Worker `keksdose` aus `cloudflare/worker.js`. Er liest die Dateien aus `public/` im öffentlichen Repo (`raw.githubusercontent.com`) und cached sie am Edge; ein Push auf `main` ist damit die Veröffentlichung, ein eigener Deploy entfällt.
+- **Spiegel:** `https://keksdose-em1cqm.freebuff.site` bleibt erreichbar – Deploy über `sites.manifest.json` (Worker liefert `public/` aus), danach veröffentlichen.
+- Kein Build, keine Umgebungsvariablen.
 - `netlify.toml` bleibt nur als Erinnerung liegen; Netlify ist seit 23.11.2026 stillgelegt (Konto-Guthaben aufgebraucht) und bekommt keine Deploys mehr.
 
 ## Nach jeder Änderung
 
 1. Änderung in `public/` umsetzen und lokal prüfen.
-2. Committen und nach `main` pushen — die Historie ist die Dokumentation der Arbeitsschritte.
+2. Committen und nach `main` pushen — die Historie ist die Dokumentation der Arbeitsschritte. Der Cloudflare Worker liefert danach den neuen Stand (Edge-Cache bis zu 5 Minuten), die Freebuff-Adresse zieht per `sites_deploy` nach.
+3. Bei jeder Veröffentlichung `VERSION` in `public/sw.js` hochzählen.
 3. Freebuff deployen, veröffentlichen und die Live-Adresse prüfen.
