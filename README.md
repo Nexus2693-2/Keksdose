@@ -4,6 +4,8 @@ Plätzchen-Rezepte als statische Website: HTML, CSS und JavaScript in `public/`,
 43 Rezepte — Plätzchen, Waffeln, Pancakes und Gebäcke —, Rezept-Finder mit zehn Fragen, Portions-/Ausstecher-Rechner, Preisschätzung je Sorte und Stück, Einkaufsliste, Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
 Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je Sorte, lässt sich als Checkliste drucken, per Link teilen und als Kalenderdatei exportieren; nach dem ersten Besuch läuft die Seite auch ohne Netz (PWA).
 
+Die Seite läuft unter **https://krumel-amp-zimt-63lbpv.freebuff.page**.
+
 ## Struktur
 
 - `public/index.html` – Seitenaufbau
@@ -12,7 +14,8 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - `public/recipes.js` – Rezeptdaten
 - `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` – Offline-Hülle und App-Icons
 - `worker.js` + `sites.manifest.json` – Freebuff-Deploy (Worker liefert `public/` aus)
-- `netlify.toml` – Netlify-Deploy direkt aus `public/`
+- `tools/obtainium-link.mjs` – erzeugt den Obtainium-Ein-Klick-Link aus Adresse und Versionsmuster
+- `netlify.toml` – ehemaliger Netlify-Deploy, stillgelegt (Freebuff ist die Adresse)
 
 ## Teilen, Drucken, Offline
 
@@ -29,7 +32,7 @@ Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je 
 - **Vorratscheck („Was hab ich da?“):** Zutaten abhaken und auf Wunsch die vorhandene Menge eintragen (g, ml oder Stück). Der Check vergleicht mit dem Rezeptbedarf und meldet „zu wenig Mehl (250 g nötig)“ statt nur „fehlt“; ohne Mengenangabe gilt eine Zutat wie bisher als vorhanden. Seit 1.0.2 hat der Check einen eigenen Abschnitt `#vorrat` zwischen Finder und Rezepten (auch in der Navigation): Dort stehen acht Grundzutaten als antippbare Chips, die Auswahl landet direkt im Vorrat, und eine Zeile darunter sagt, wie viele Rezepte damit sofort gehen und wie viele nur noch eine Zutat brauchen. Der Knopf in der Rezeptleiste bleibt als Abkürzung.
 - **Tipps:** Jedes Rezept endet mit „Gut zu wissen“ — eine konkrete Handlung samt Begründung (Temperatur, Timing, Technik, Lagerung), keine allgemeinen Floskeln. Bei Rezeptänderungen prüft der Test, dass jeder Tipp vorhanden, ausreichend ausführlich und einzigartig ist.
 - **Ankündigungen (#ankuendigungen):** eigener Abschnitt mit Navigationseintrag „Ankündigungen“ und dem Reiter **App** in der Kopfzeile (beide zeigen auf denselben Abschnitt). Er startet mit der App-Ankündigung („Die Keksdose-App ist da“, Etikett „Android · Version 1.0“, Download-Button) und ist als Liste angelegt, in die weitere Neuigkeiten einfach als `.news-item` dazukommen. In der Druckansicht ausgeblendet.
-- **Obtainium-Anleitung:** Unter der App-Ankündigung steht in `.app-update` in drei kurzen Schritten, wie man die App in [Obtainium](https://obtainium.imranr.dev) einträgt: Adresse `https://github.com/Nexus2693-2/Keksdose` einfügen, Standardeinstellungen lassen. Die Quelle sind die GitHub-Releases, nicht die Website. In der App selbst ist der Block ausgeblendet (`.is-app .app-update`).
+- **Obtainium:** Unter der App-Ankündigung steht in `.app-update` ein Ein-Klick-Link, der die App in [Obtainium](https://obtainium.imranr.dev) einträgt – HTML-Quelle `https://krumel-amp-zimt-63lbpv.freebuff.page/downloads/`, Versionsmuster und fertige Einstellungen inklusive. Quelle ist also die Website, nicht GitHub; das Repository kann privat bleiben. Wer den Knopf nicht nutzen kann, trägt die Adresse von Hand ein. In der App selbst ist der Block ausgeblendet (`.is-app .app-update`).
 - **Handy und Tablet:** Bis 900 px Breite liegt die Navigation in einem aufklappbaren **Menü** (Marke, „Menü“, Einkaufsliste in einer flachen Kopfzeile, 38 px hoch statt vormals 127 px in zwei Reihen). Der Reiter „App“ erscheint dort als eigener Eintrag. Unter 430 px werden Karten einspaltig, Überschrift und Abstände kleiner. Geprüft ohne seitlichen Überlauf bei 320, 360, 390, 430, 640, 768, 834, 900, 920, 1024 und 1280 px.
 
 ## Bewegung und Bedienung
@@ -70,10 +73,10 @@ Die Website steckt als schlanke Offline-App in `android/`: ein WebView, der alle
 - **App-Erkennung:** Die App hängt `KeksdoseApp/1.0` an den User-Agent. Dadurch blendet die Seite den APK-Download aus und registriert keinen Service Worker, weil die Dateien ohnehin im APK liegen.
 - **Assets:** Beim Linken wird `public/` direkt als Asset-Ordner eingebunden. Nach Änderungen an der Website also das APK neu bauen und ein neues Release anlegen.
 - **Download:** Die geprüfte APK liegt samt `SHA256SUMS` unter `public/downloads/` und wird mit der Website veröffentlicht; der Button in den Ankündigungen lädt sie direkt von dort. Der Build lässt diesen Ordner aus, damit die APK nicht in sich selbst landet.
-- **Download-Seite:** `public/downloads/index.html` ist die feste Adresse `/downloads/` mit Version, Download-Link, SHA-256 und einem kurzen Obtainium-Hinweis. Bei einer neuen Fassung hier Version, Dateinamen und Hash mitziehen.
-- **Updates:** Quelle für [Obtainium](https://obtainium.imranr.dev) sind die GitHub-Releases. Das Repository ist deshalb **öffentlich**; nur so kann Obtainium ohne Token die Release-Liste und die APK lesen. Obtainium vergleicht den Release-Tag mit der installierten Version und lädt das APK aus dem Release.
+- **Download-Seite:** `public/downloads/index.html` ist die feste Adresse `/downloads/` mit Version, Download-Link, SHA-256, älteren Fassungen und dem Obtainium-Knopf. Bei einer neuen Fassung hier Version, Dateinamen und Hash mitziehen; `node tools/obtainium-link.mjs --inject` setzt den Ein-Klick-Link neu (das Versionsmuster liest die Überschrift „Keksdose 1.0.2“).
+- **Updates:** Quelle für [Obtainium](https://obtainium.imranr.dev) ist die Download-Seite dieser Website (`/downloads/`) als HTML-Quelle. Obtainium liest Version und APK-Link von dort; das GitHub-Repository kann deshalb **privat** bleiben.
 - **Signatur:** Damit ein Update die bestehende Installation ersetzt, muss jede Fassung mit demselben Schlüssel signiert sein. Aktuell ist das der Debug-Schlüssel aus `$HOME/.android/debug.keystore`; für dauerhafte Updates einen eigenen Release-Key erzeugen und sicher aufbewahren.
-- **Release:** Der Workflow `.github/workflows/release-apk.yml` prüft die Prüfsumme und hängt die Datei an das Release `v1.0.2`; er läuft bei Änderungen in `public/downloads/` und lässt sich manuell starten. Weil das Repository öffentlich ist, lassen sich Release-Seite und APK auch ohne Anmeldung herunterladen – genau das nutzt Obtainium.
+- **Release:** Der Workflow `.github/workflows/release-apk.yml` prüft die Prüfsumme und hängt die Datei an das Release `v1.0.2`; er läuft bei Änderungen in `public/downloads/` und lässt sich manuell starten. Die Releases sind nur noch ein Archiv – Obtainium und alle Download-Links nutzen die Website.
 - **Versionsstand:** `1.0.2` (versionCode 3) enthält den Website-Stand mit dem eigenen Vorrats-Abschnitt; `1.0.1` (flache Handy-Kopfzeile, Menü) und `1.0.0` bleiben als ältere Fassungen in `public/downloads/` liegen. Beim Bauen ohne Angaben setzt `build.sh` Version und Code aus dem Manifest in eine Arbeitskopie – `VERSION_NAME`/`VERSION_CODE` überschreiben sie.
 
 ## Lokal ansehen
@@ -84,20 +87,14 @@ python3 -m http.server 3000 --bind 0.0.0.0 --directory public
 
 ## Veröffentlichen
 
-Die Seite läuft an zwei Orten, beide werden bei jeder Änderung aktualisiert:
+Die Seite läuft an einer Adresse: **https://krumel-amp-zimt-63lbpv.freebuff.page**
 
-| Ort | URL | Weg |
-| --- | --- | --- |
-| Netlify (Hauptseite) | https://keksdose.netlify.app | `netlify deploy --prod --dir=public` |
-| Freebuff Sites (Spiegel) | https://krumel-amp-zimt-63lbpv.freebuff.page | Deploy über `sites.manifest.json`, danach veröffentlichen |
-
-Netlify baut nichts: `netlify.toml` setzt `command = ""` und `publish = "public"`.
-Das Zugriffstoken liegt lokal in `NETLIFY_AUTH_TOKEN` und ist per `.gitignore` ausgeschlossen.
-Solange das Netlify-Guthaben aufgebraucht ist, lehnt Netlify neue Deploys ab („Account credit usage exceeded“); dann bleibt Freebuff die aktuelle Adresse, bis wieder Guthaben da ist.
+- Deploy über `sites.manifest.json` (Worker liefert `public/` aus), danach veröffentlichen.
+- Kein Build, keine Umgebungsvariablen, keine zweite Adresse.
+- `netlify.toml` bleibt nur als Erinnerung liegen; Netlify ist seit 23.11.2026 stillgelegt (Konto-Guthaben aufgebraucht) und bekommt keine Deploys mehr.
 
 ## Nach jeder Änderung
 
 1. Änderung in `public/` umsetzen und lokal prüfen.
 2. Committen und nach `main` pushen — die Historie ist die Dokumentation der Arbeitsschritte.
-3. Netlify deployen und die Live-URL prüfen.
-4. Freebuff-Deploy hochladen, veröffentlichen und die Live-URL prüfen.
+3. Freebuff deployen, veröffentlichen und die Live-Adresse prüfen.
