@@ -3,7 +3,7 @@
 // --inject setzt den Link in beide HTML-Seiten ein und ist wiederholbar.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const site = 'https://krumel-amp-zimt-63lbpv.freebuff.page';
+const site = 'https://keksdose-em1cqm.freebuff.site';
 const page = readFileSync('public/downloads/index.html', 'utf8');
 const heading = /<h1>Keksdose ([0-9.]+)<\/h1>/.exec(page);
 if (!heading) throw new Error('Version steht nicht als „Keksdose 1.0.2“ auf der Download-Seite.');

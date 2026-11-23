@@ -1,7 +1,7 @@
 # Veröffentlichungen
 
 Jede Änderung wird als Commit auf `main` dokumentiert und unter
-**https://krumel-amp-zimt-63lbpv.freebuff.page** veröffentlicht (Freebuff Sites,
+**https://keksdose-em1cqm.freebuff.site** veröffentlicht (Freebuff Sites,
 Deploy aus `public/` über `sites.manifest.json`).
 
 Netlify ist seit 23.11.2026 stillgelegt, weil das Konto-Guthaben aufgebraucht ist

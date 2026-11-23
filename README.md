@@ -4,7 +4,7 @@ Plätzchen-Rezepte als statische Website: HTML, CSS und JavaScript in `public/`,
 43 Rezepte — Plätzchen, Waffeln, Pancakes und Gebäcke —, Rezept-Finder mit zehn Fragen, Portions-/Ausstecher-Rechner, Preisschätzung je Sorte und Stück, Einkaufsliste, Backplan in fünf Stationen (Teige, Blech-Pipeline, Auskühlen, Fertigstellen, Verpacken) mit Ausstattungs-Auswahl, geführter Backmodus mit Timer und Vorratscheck.
 Der Backplan rechnet mit Ofenblechen, Team, Tempo, Pause, Zielzeit und Menge je Sorte, lässt sich als Checkliste drucken, per Link teilen und als Kalenderdatei exportieren; nach dem ersten Besuch läuft die Seite auch ohne Netz (PWA).
 
-Die Seite läuft unter **https://krumel-amp-zimt-63lbpv.freebuff.page**.
+Die Seite läuft unter **https://keksdose-em1cqm.freebuff.site**.
 
 ## Struktur
 
@@ -33,7 +33,7 @@ Die Seite läuft unter **https://krumel-amp-zimt-63lbpv.freebuff.page**.
 - **Vorratscheck („Was hab ich da?“):** Zutaten abhaken und auf Wunsch die vorhandene Menge eintragen (g, ml oder Stück). Der Check vergleicht mit dem Rezeptbedarf und meldet „zu wenig Mehl (250 g nötig)“ statt nur „fehlt“; ohne Mengenangabe gilt eine Zutat wie bisher als vorhanden. Seit 1.0.2 hat der Check einen eigenen Abschnitt `#vorrat` zwischen Finder und Rezepten (auch in der Navigation): Dort stehen acht Grundzutaten als antippbare Chips, die Auswahl landet direkt im Vorrat, und eine Zeile darunter sagt, wie viele Rezepte damit sofort gehen und wie viele nur noch eine Zutat brauchen. Der Knopf in der Rezeptleiste bleibt als Abkürzung.
 - **Tipps:** Jedes Rezept endet mit „Gut zu wissen“ — eine konkrete Handlung samt Begründung (Temperatur, Timing, Technik, Lagerung), keine allgemeinen Floskeln. Bei Rezeptänderungen prüft der Test, dass jeder Tipp vorhanden, ausreichend ausführlich und einzigartig ist.
 - **Ankündigungen (#ankuendigungen):** eigener Abschnitt mit Navigationseintrag „Ankündigungen“ und dem Reiter **App** in der Kopfzeile (beide zeigen auf denselben Abschnitt). Er startet mit der App-Ankündigung („Die Keksdose-App ist da“, Etikett „Android · Version 1.0.3“, Download-Button) und ist als Liste angelegt, in die weitere Neuigkeiten einfach als `.news-item` dazukommen. In der Druckansicht ausgeblendet.
-- **Obtainium:** Unter der App-Ankündigung steht in `.app-update` ein Ein-Klick-Link, der die App in [Obtainium](https://obtainium.imranr.dev) einträgt – HTML-Quelle `https://krumel-amp-zimt-63lbpv.freebuff.page/downloads/`, Versionsmuster und fertige Einstellungen inklusive. Quelle ist also die Website, nicht GitHub; das Repository kann privat bleiben. Wer den Knopf nicht nutzen kann, trägt die Adresse von Hand ein. In der App selbst ist der Block ausgeblendet (`.is-app .app-update`).
+- **Obtainium:** Unter der App-Ankündigung steht in `.app-update` ein Ein-Klick-Link, der die App in [Obtainium](https://obtainium.imranr.dev) einträgt – HTML-Quelle `https://keksdose-em1cqm.freebuff.site/downloads/`, Versionsmuster und fertige Einstellungen inklusive. Quelle ist also die Website, nicht GitHub; das Repository kann privat bleiben. Wer den Knopf nicht nutzen kann, trägt die Adresse von Hand ein. In der App selbst ist der Block ausgeblendet (`.is-app .app-update`).
 - **Handy und Tablet:** Bis 900 px Breite liegt die Navigation in einem aufklappbaren **Menü** (Marke, „Menü“, Einkaufsliste in einer flachen Kopfzeile, 38 px hoch statt vormals 127 px in zwei Reihen). Der Reiter „App“ erscheint dort als eigener Eintrag. Unter 430 px werden Karten einspaltig, Überschrift und Abstände kleiner. Geprüft ohne seitlichen Überlauf bei 320, 360, 390, 430, 640, 768, 834, 900, 920, 1024 und 1280 px.
 
 ## Bewegung und Bedienung
@@ -88,7 +88,7 @@ python3 -m http.server 3000 --bind 0.0.0.0 --directory public
 
 ## Veröffentlichen
 
-Die Seite läuft an einer Adresse: **https://krumel-amp-zimt-63lbpv.freebuff.page**
+Die Seite läuft an einer Adresse: **https://keksdose-em1cqm.freebuff.site**
 
 - Deploy über `sites.manifest.json` (Worker liefert `public/` aus), danach veröffentlichen.
 - Kein Build, keine Umgebungsvariablen, keine zweite Adresse.
