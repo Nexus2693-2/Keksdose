@@ -28,8 +28,9 @@ die einzige Adresse.
 | 23.11.2026 | Handy/Tablet: flache Kopfzeile mit Menü, einspaltige Karten unter 430 px, kein seitlicher Überlauf; App 1.0.1 | `1b8ca9a` |
 | 23.11.2026 | „Was hab ich da?“ als eigener Abschnitt `#vorrat`, antippbare Grundzutaten, Live-Stand; App 1.0.2 samt Release v1.0.2; Offline-Hülle v11 | `6b76e7a` |
 | 23.11.2026 | Obtainium liest die Website statt GitHub (Ein-Klick-Link mit HTML-Quelle und Versionsmuster), damit das Repository privat bleiben kann; Freebuff ist die einzige Adresse, Doku auf einen Deploy-Weg vereinfacht; Offline-Hülle v12 | `e052684` |
+| 23.11.2026 | Eigene Gebäcks-Motive statt geliehener Keksformen (Pancakes, Muffins, Buchteln, Zimtschnecken, Palmiers, Streuselkuchen, Krapfen, runde Apfel-Waffel, Schokoladenbrot), Rezeptname als Bildbeschriftung; App 1.0.3 (versionCode 4) samt Release v1.0.3; Offline-Hülle v13 | `5dfd0c8` |
 
 ## Hinweise
 
 - Freebuff erlaubt sechs veröffentlichte Seiten. Für Keksdose wurden am 18.11.2026 die Veröffentlichungen von **Ork Game** und **Nebula-Cubing** pausiert (Code und Daten bleiben erhalten, jederzeit wieder veröffentlichbar).
-- Die GitHub-Releases (`v1.0.0`–`v1.0.2`) bleiben als Archiv bestehen; Downloads und Obtainium laufen über die Website.
+- Die GitHub-Releases (`v1.0.0`–`v1.0.3`) bleiben als Archiv bestehen; Downloads und Obtainium laufen über die Website.
