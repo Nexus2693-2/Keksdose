@@ -3327,6 +3327,34 @@
     track.style.setProperty('--ticker-dur', `${Math.round(RECIPES.length * 3.6)}s`);
   }
 
+  // Auf dem Handy sitzt die Navigation in einem aufklappbaren Menü.
+  function setupMobileMenu() {
+    const toggle = document.getElementById('menuToggle');
+    const menu = document.getElementById('mobileMenu');
+    if (!toggle || !menu) return;
+
+    const links = [...document.querySelectorAll('.site-nav a')];
+    menu.innerHTML = links.map((link) => {
+      const cls = link.classList.contains('nav-app') ? ' class="is-app"' : '';
+      return `<a href="${esc(link.getAttribute('href'))}"${cls}>${esc(link.textContent.trim())}</a>`;
+    }).join('');
+
+    const setOpen = (open) => {
+      menu.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    toggle.addEventListener('click', () => setOpen(menu.hidden));
+    menu.addEventListener('click', (event) => {
+      if (event.target.closest('a')) setOpen(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || menu.hidden) return;
+      setOpen(false);
+      toggle.focus();
+    });
+    window.addEventListener('hashchange', () => setOpen(false));
+  }
+
   // Startbild und Rezeptkarten antworten auf die Maus: die Kacheln wandern
   // ein Stück mit, über dem Motiv sitzt ein warmer Lichtpunkt.
   function setupPointerLife() {
@@ -3428,6 +3456,7 @@
   renderGrid();
   renderHeroArt();
   renderTicker();
+  setupMobileMenu();
   setupMotion();
   setupPointerLife();
 

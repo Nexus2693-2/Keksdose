@@ -101,7 +101,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 22px;
   height: 74px;
 }
 .brand {
@@ -120,6 +120,32 @@ a { color: inherit; }
 .brand-name i { font-style: italic; color: var(--gold); }
 
 .site-nav { display: flex; align-items: center; gap: 26px; font-size: 14px; }
+
+/* Auf dem Handy ersetzt dieses Menü die lange Reiterreihe. */
+.menu-btn {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fffdf8;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.menu-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+.menu-btn[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); color: #fbf6ec; }
+.mobile-menu { display: none; }
 .site-nav a {
   text-decoration: none;
   color: var(--ink-soft);
@@ -1024,10 +1050,16 @@ a { color: inherit; }
 .drawer-actions .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; }
 
 /* ---------- Responsive ---------- */
+@media (max-width: 1060px) {
+  .site-nav { gap: 18px; font-size: 13.5px; }
+  .header-inner { gap: 14px; }
+  .nav-badge { display: none; }
+}
+
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; padding-top: 44px; padding-bottom: 40px; gap: 26px; }
   .hero h1 { max-width: 20ch; }
-  .hero-art { min-height: 220px; max-width: 420px; }
+  .hero-art { min-height: 220px; max-width: 460px; width: 100%; margin: 0 auto; }
   .hero-art .t1 { width: 40%; left: 0; }
   .hero-art .t2 { width: 34%; right: 6%; top: 18%; }
   .hero-art .t3 { width: 39%; left: 30%; bottom: 0; }
@@ -1037,28 +1069,43 @@ a { color: inherit; }
   .finder-card { padding: 26px 24px 24px; }
 }
 
-@media (max-width: 640px) {
-  .wrap { padding: 0 18px; }
+/* Bis zum Tablet quer bleibt die Kopfzeile flach; die Reiter liegen im Menü. */
+@media (max-width: 900px) {
   .header-inner {
     height: auto;
     flex-wrap: wrap;
-    gap: 6px 12px;
-    padding-top: 6px;
-    padding-bottom: 7px;
+    gap: 8px 10px;
+    padding-top: 9px;
+    padding-bottom: 9px;
   }
   .brand { flex: 1 1 auto; }
-  .site-nav {
-    order: 3;
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px 12px;
-    font-size: 13px;
+  .site-nav { display: none; }
+  .menu-btn { display: inline-flex; }
+  .mobile-menu {
+    flex: 1 1 100%;
+    display: grid;
+    gap: 0;
     padding-top: 6px;
     border-top: 1px solid var(--line);
   }
-  .site-nav a { padding: 3px 0; }
-  .site-nav .nav-badge { display: none; }
+  .mobile-menu[hidden] { display: none; }
+  .mobile-menu a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 4px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .mobile-menu a:last-child { border-bottom: 0; }
+  .mobile-menu a::after { content: "→"; font-size: 13px; color: var(--ink-mute); }
+  .mobile-menu a.is-app { color: var(--red); font-weight: 600; }
+}
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 18px; }
   .brand-name { font-size: 18px; white-space: nowrap; }
   .hero { padding-top: 34px; }
   .hero-actions .btn { flex: 1 1 auto; }
@@ -1073,6 +1120,20 @@ a { color: inherit; }
   .drawer-head, .drawer-body { padding-left: 20px; padding-right: 20px; }
   .drawer-art svg { width: 104px; }
   .section-head { margin-bottom: 18px; }
+}
+
+@media (max-width: 430px) {
+  .wrap { padding: 0 16px; }
+  .hero { padding-top: 26px; padding-bottom: 34px; }
+  .hero h1 { font-size: clamp(2rem, 10vw, 2.4rem); }
+  .hero-lede { font-size: 15.5px; }
+  .hero-actions { gap: 10px; margin-top: 24px; }
+  .section-lede { font-size: 14.5px; }
+  .card { padding: 10px 10px 16px; }
+  .grid { grid-template-columns: 1fr; }
+  .finder-card { padding: 22px 18px 20px; }
+  .ticker { padding: 10px 0; }
+  .ticker-item { font-size: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2323,7 +2384,7 @@ body.is-scrolled .site-header {
   to { opacity: 1; transform: scale(1.06); }
 }
 .hero-art::after {
-  inset: -8% -6%;
+  inset: -8% 0;
   border-radius: 50%;
   background-image:
     radial-gradient(circle, rgba(184, 132, 60, .5) 0 1.6px, transparent 2px),
@@ -2383,8 +2444,7 @@ body.is-scrolled .site-header {
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: .02em;
-  overflow: hidden;
-  transition: border-color .2s, box-shadow .2s, transform .2s var(--ease);
+  transition: border-color .2s, box-shadow .2s, transform .2s var(--ease), background .2s;
 }
 .site-nav .nav-app svg {
   width: 14px;
@@ -2395,25 +2455,12 @@ body.is-scrolled .site-header {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.site-nav .nav-app > * { position: relative; z-index: 1; }
-.site-nav .nav-app::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(100deg, transparent 34%, rgba(255, 255, 255, .7) 50%, transparent 66%);
-  transform: translateX(-120%);
-  animation: app-sheen 7.5s ease-in-out infinite;
-}
 .site-nav .nav-app::after { display: none; }
 .site-nav .nav-app:hover {
   border-color: rgba(150, 49, 43, .55);
+  background: linear-gradient(120deg, rgba(150, 49, 43, .14), rgba(201, 138, 75, .3));
   box-shadow: 0 8px 18px -14px rgba(150, 49, 43, .9);
   transform: translateY(-1px);
-}
-@keyframes app-sheen {
-  0%, 55% { transform: translateX(-120%); }
-  85%, 100% { transform: translateX(120%); }
 }
 
 /* ---------- App-Bereich ---------- */
@@ -2487,11 +2534,10 @@ body.is-scrolled .site-header {
   .hero-art::before,
   .hero-art::after,
   .hero-art .tile svg,
-  .ticker-track,
-  .site-nav .nav-app::before { animation: none !important; }
+  .ticker-track { animation: none !important; }
   .hero-art { transform: none !important; transition: none; }
   .card-art::before { display: none; }
-  .ticker { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  .ticker { -webkit-mask-image: none; mask-image: none; }
 }
 
 @media print {

@@ -29,6 +29,10 @@
         </span>
         <span class="brand-name">Keksdose</span>
       </a>
+      <button class="menu-btn" type="button" id="menuToggle" aria-expanded="false" aria-controls="mobileMenu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17"/></svg>
+        <span>Menü</span>
+      </button>
       <nav class="site-nav" aria-label="Hauptnavigation">
         <a href="#finder">Finder</a>
         <a href="#rezepte">Rezepte</a>
@@ -40,12 +44,13 @@
           <span>App</span>
         </a>
         <span class="nav-badge">43 Rezepte</span>
-        <button class="list-btn" type="button" id="listToggle">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>
-          <span>Einkaufsliste</span>
-          <span class="list-count" id="listCount" hidden>0</span>
-        </button>
       </nav>
+      <button class="list-btn" type="button" id="listToggle">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>
+        <span>Einkaufsliste</span>
+        <span class="list-count" id="listCount" hidden>0</span>
+      </button>
+      <div class="mobile-menu" id="mobileMenu" hidden></div>
     </div>
   </header>
 
@@ -363,7 +368,7 @@
 
       <article class="news-item">
         <div class="news-body">
-          <p class="news-meta"><span class="app-badge">Android · Version 1.0</span></p>
+          <p class="news-meta"><span class="app-badge">Android · Version 1.0.1</span></p>
           <h3 id="appTitle">Die Keksdose-App ist da.</h3>
           <p class="app-lede">
             Alle 43 Rezepte, Einkaufsliste, Vorratscheck und Backplan stecken jetzt in einer
@@ -372,27 +377,24 @@
             im Browser lässt sich die Seite weiterhin auf den Homescreen legen.
           </p>
           <div class="news-actions">
-            <a class="btn btn-primary app-download" href="downloads/Keksdose-1.0.0.apk" download>APK herunterladen (256 KB)</a>
-            <a class="btn btn-ghost" href="downloads/">Versionen &amp; Prüfsumme</a>
+            <a class="btn btn-primary app-download" href="downloads/Keksdose-1.0.1.apk" download>APK herunterladen (250 KB)</a>
+            <a class="btn btn-ghost" href="downloads/">Alle Versionen</a>
           </div>
           <p class="news-fineprint">Android 7 oder neuer. Beim Installieren „Unbekannte Quellen“ bzw. „Diese Quelle zulassen“ erlauben.</p>
 
           <section class="app-update" aria-labelledby="appUpdateTitle">
-            <h4 id="appUpdateTitle">Neue Fassungen kommen von allein: mit Obtainium</h4>
+            <h4 id="appUpdateTitle">Neue Fassungen automatisch</h4>
             <p>
-              <a href="https://obtainium.imranr.dev" target="_blank" rel="noopener">Obtainium</a> ist eine freie
-              Android-App, die installierte Apps direkt bei ihrer Quelle nach neuen Fassungen fragt. Damit musst du
-              die Keksdose nicht jedes Mal selbst herunterladen – Obtainium meldet sich, sobald hier eine neue
-              Version liegt, und installiert sie auf Wunsch.
+              Mit <a href="https://obtainium.imranr.dev" target="_blank" rel="noopener">Obtainium</a> bekommst du
+              jede neue Version von selbst – ohne noch einmal hier vorbeizuschauen. Einmal eintragen, fertig.
             </p>
             <ol class="app-steps">
-              <li>Obtainium von <a href="https://obtainium.imranr.dev" target="_blank" rel="noopener">obtainium.imranr.dev</a> installieren und einmal öffnen.</li>
-              <li>Unten auf <b>Add App</b> tippen und diese Adresse einfügen:<br>
-                <span class="app-source">https://keksdose.netlify.app/downloads/</span></li>
-              <li>Obtainium erkennt die Seite als <b>HTML</b>-Quelle. In den Optionen <b>Version Extract Whole Page</b> einschalten und als Muster <code>(\d+\.\d+\.\d+)</code> eintragen – dann liest Obtainium die Versionsnummer direkt aus der Seite.</li>
-              <li>Speichern und in der Liste auf <b>Install</b> tippen. Kommt später eine neue Version, zeigt Obtainium sie oben an.</li>
+              <li>Obtainium installieren und öffnen.</li>
+              <li>Unten auf <b>Add App</b> tippen, diese Adresse einfügen und auf <b>Add</b> tippen:
+                <span class="app-source">https://github.com/Nexus2693-2/Keksdose</span></li>
+              <li>Beim ersten Mal noch <b>Install</b> antippen. Alles andere kann so bleiben, wie es ist.</li>
             </ol>
-            <p class="news-fineprint">Obtainium prüft nur, ob sich die Datei auf dieser Seite geändert hat – es lädt nichts von fremden Servern. Wer keine Zusatz-App möchte, lädt die APK einfach hier herunter.</p>
+            <p class="news-fineprint">Die Standardeinstellungen reichen. Wer kein Obtainium möchte, lädt die APK einfach hier herunter.</p>
           </section>
         </div>
       </article>

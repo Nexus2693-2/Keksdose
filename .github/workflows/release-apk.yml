@@ -25,11 +25,12 @@ jobs:
       - name: APK an das Release hängen
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: v1.0.0
+          TAG: v1.0.1
+          APK: public/downloads/Keksdose-1.0.1.apk
         run: |
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --title "Keksdose 1.0.0 – Android-App" \
-              --notes "Android-App der Keksdose."
+            gh release create "$TAG" --title "Keksdose 1.0.1 – Android-App" \
+              --notes "Website-Fassung für Handy und Tablet: flache Kopfzeile mit Menü, aufgeräumte Karten, App-Bereich mit Obtainium-Anleitung."
           fi
-          gh release upload "$TAG" public/downloads/Keksdose-1.0.0.apk --clobber
+          gh release upload "$TAG" "$APK" --clobber
           gh release view "$TAG" --json assets --jq '.assets[].name'

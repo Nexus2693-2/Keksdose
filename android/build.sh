@@ -8,8 +8,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_NAME="${VERSION_NAME:-1.0.0}"
-VERSION_CODE="${VERSION_CODE:-1}"
+VERSION_NAME="${VERSION_NAME:-1.0.1}"
+VERSION_CODE="${VERSION_CODE:-2}"
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/opt/android-sdk}}"
 BUILD_TOOLS="$(ls -d "$SDK"/build-tools/* 2>/dev/null | sort -V | tail -1)"
@@ -39,11 +39,16 @@ mkdir -p "$STAGE"
 cp -a ../public/. "$STAGE"/
 rm -rf "$STAGE/downloads"
 
+# Version aus der Umgebung in eine Arbeitskopie des Manifests schreiben –
+# aapt2 ignoriert --version-code/--version-name, wenn das Manifest sie nennt.
+sed -E "s/android:versionCode=\"[0-9]+\"/android:versionCode=\"$VERSION_CODE\"/; s/android:versionName=\"[^\"]+\"/android:versionName=\"$VERSION_NAME\"/" \
+  AndroidManifest.xml > "$OUT/AndroidManifest.xml"
+
 echo "==> APK-Rahmen linken (Assets: public ohne downloads)"
 "$BUILD_TOOLS/aapt2" link \
   -o "$OUT/base.apk" \
   -I "$JAR" \
-  --manifest AndroidManifest.xml \
+  --manifest "$OUT/AndroidManifest.xml" \
   -A "$STAGE" \
   --java "$OUT/gen" \
   --min-sdk-version 24 \
