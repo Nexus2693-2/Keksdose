@@ -35,6 +35,10 @@
         <a href="#backplan">Backplan</a>
         <a href="#tipps">Backtipps</a>
         <a href="#ankuendigungen">Ankündigungen</a>
+        <a class="nav-app" href="#ankuendigungen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M10.4 18.6h3.2"/></svg>
+          <span>App</span>
+        </a>
         <span class="nav-badge">43 Rezepte</span>
         <button class="list-btn" type="button" id="listToggle">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.6 11.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>
@@ -62,6 +66,10 @@
       </div>
       <div class="hero-art" id="heroArt" aria-hidden="true"></div>
     </section>
+
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="tickerTrack"></div>
+    </div>
 
     <section id="finder" class="wrap finder" aria-label="Plätzchen-Finder">
       <div class="finder-card">
@@ -365,8 +373,27 @@
           </p>
           <div class="news-actions">
             <a class="btn btn-primary app-download" href="downloads/Keksdose-1.0.0.apk" download>APK herunterladen (256 KB)</a>
+            <a class="btn btn-ghost" href="downloads/">Versionen &amp; Prüfsumme</a>
           </div>
           <p class="news-fineprint">Android 7 oder neuer. Beim Installieren „Unbekannte Quellen“ bzw. „Diese Quelle zulassen“ erlauben.</p>
+
+          <section class="app-update" aria-labelledby="appUpdateTitle">
+            <h4 id="appUpdateTitle">Neue Fassungen kommen von allein: mit Obtainium</h4>
+            <p>
+              <a href="https://obtainium.imranr.dev" target="_blank" rel="noopener">Obtainium</a> ist eine freie
+              Android-App, die installierte Apps direkt bei ihrer Quelle nach neuen Fassungen fragt. Damit musst du
+              die Keksdose nicht jedes Mal selbst herunterladen – Obtainium meldet sich, sobald hier eine neue
+              Version liegt, und installiert sie auf Wunsch.
+            </p>
+            <ol class="app-steps">
+              <li>Obtainium von <a href="https://obtainium.imranr.dev" target="_blank" rel="noopener">obtainium.imranr.dev</a> installieren und einmal öffnen.</li>
+              <li>Unten auf <b>Add App</b> tippen und diese Adresse einfügen:<br>
+                <span class="app-source">https://keksdose.netlify.app/downloads/</span></li>
+              <li>Obtainium erkennt die Seite als <b>HTML</b>-Quelle. In den Optionen <b>Version Extract Whole Page</b> einschalten und als Muster <code>(\d+\.\d+\.\d+)</code> eintragen – dann liest Obtainium die Versionsnummer direkt aus der Seite.</li>
+              <li>Speichern und in der Liste auf <b>Install</b> tippen. Kommt später eine neue Version, zeigt Obtainium sie oben an.</li>
+            </ol>
+            <p class="news-fineprint">Obtainium prüft nur, ob sich die Datei auf dieser Seite geändert hat – es lädt nichts von fremden Servern. Wer keine Zusatz-App möchte, lädt die APK einfach hier herunter.</p>
+          </section>
         </div>
       </article>
 

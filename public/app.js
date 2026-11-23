@@ -3314,6 +3314,59 @@
     ).join('');
   }
 
+  // Laufband unter dem Startbild: das ganze Sortiment zieht langsam vorbei.
+  // Zwei gleiche Gruppen, damit die Schleife ohne Sprung umläuft.
+  function renderTicker() {
+    const track = document.getElementById('tickerTrack');
+    if (!track) return;
+    const items = RECIPES.map((r) =>
+      `<span class="ticker-item">${esc(r.name)}</span><span class="ticker-sep" aria-hidden="true"></span>`
+    ).join('');
+    const group = `<div class="ticker-group">${items}</div>`;
+    track.innerHTML = group + group;
+    track.style.setProperty('--ticker-dur', `${Math.round(RECIPES.length * 3.6)}s`);
+  }
+
+  // Startbild und Rezeptkarten antworten auf die Maus: die Kacheln wandern
+  // ein Stück mit, über dem Motiv sitzt ein warmer Lichtpunkt.
+  function setupPointerLife() {
+    const canHover = window.matchMedia
+      && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const reduceMotion = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!canHover || reduceMotion) return;
+
+    const hero = document.querySelector('.hero');
+    if (hero && el.heroArt) {
+      let frame = null;
+      hero.addEventListener('pointermove', (event) => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+          frame = null;
+          const rect = hero.getBoundingClientRect();
+          el.heroArt.style.setProperty('--px', ((event.clientX - rect.left) / rect.width - .5).toFixed(3));
+          el.heroArt.style.setProperty('--py', ((event.clientY - rect.top) / rect.height - .5).toFixed(3));
+        });
+      });
+      hero.addEventListener('pointerleave', () => {
+        el.heroArt.style.setProperty('--px', '0');
+        el.heroArt.style.setProperty('--py', '0');
+      });
+    }
+
+    if (!el.grid) return;
+    el.grid.addEventListener('pointermove', (event) => {
+      const card = event.target.closest('.card');
+      if (!card) return;
+      const art = card.querySelector('.card-art');
+      if (!art) return;
+      const rect = art.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      art.style.setProperty('--mx', `${Math.round(((event.clientX - rect.left) / rect.width) * 100)}%`);
+      art.style.setProperty('--my', `${Math.round(((event.clientY - rect.top) / rect.height) * 100)}%`);
+    });
+  }
+
   /* ---------- Bewegung ---------- */
   // Ein Beobachter für alles: Abschnitte blenden beim Scrollen ein, die
   // Navigation merkt sich den gelesenen Abschnitt, die Kopfzeile bekommt Tiefe.
@@ -3352,7 +3405,7 @@
       el.body.classList.toggle('is-scrolled', !entry.isIntersecting);
     }).observe(sentinel);
 
-    const links = [...document.querySelectorAll('.site-nav a[href^="#"]')];
+    const links = [...document.querySelectorAll('.site-nav a[href^="#"]:not(.nav-app)')];
     const linkById = new Map(links.map((link) => [link.hash.slice(1), link]));
     const navIO = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -3374,7 +3427,9 @@
   renderChips();
   renderGrid();
   renderHeroArt();
+  renderTicker();
   setupMotion();
+  setupPointerLife();
 
   loadPlan();
   const planFromLink = applyPlanHash();

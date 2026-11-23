@@ -182,7 +182,12 @@ a { color: inherit; }
 .btn-ghost { border-color: var(--line-strong); color: var(--ink-soft); background: transparent; }
 .btn-ghost:hover { border-color: var(--ink); color: var(--ink); transform: translateY(-1px); }
 
-.hero-art { position: relative; min-height: 330px; }
+.hero-art {
+  position: relative;
+  min-height: 330px;
+  transform: translate3d(calc(var(--px, 0) * 13px), calc(var(--py, 0) * 10px), 0);
+  transition: transform .55s var(--ease);
+}
 .hero-art .tile {
   position: absolute;
   display: grid;
@@ -2155,6 +2160,20 @@ body.is-scrolled .site-header {
 .hero-art .t3 svg { animation-delay: -4.1s; }
 .hero-art .tile:hover { translate: 0 -8px; }
 
+/* Rezeptkarten: ein warmer Lichtpunkt folgt der Maus über dem Motiv. */
+.card-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(150px 150px at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 68%);
+  opacity: 0;
+  transition: opacity .28s var(--ease);
+}
+.card:hover .card-art::before,
+.card:focus-visible .card-art::before { opacity: 1; }
+
 /* Rezeptkarten: ein weicher Lichtstreif über dem Motiv beim Überfahren. */
 .card-art::after {
   content: "";
@@ -2270,6 +2289,184 @@ body.is-scrolled .site-header {
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------- Lebendigkeit ohne Zutun ---------- */
+
+/* Der Strich im Vorspann atmet, damit ruhige Abschnitte nicht stillstehen. */
+.eyebrow span {
+  transform-origin: left center;
+  animation: eyebrow-breathe 4.6s var(--ease) infinite;
+}
+@keyframes eyebrow-breathe {
+  0%, 100% { transform: scaleX(.55); opacity: .32; }
+  42% { transform: scaleX(1); opacity: .7; }
+}
+
+/* Das Kekslogo wiegt sich langsam, als läge es in der Dose. */
+.brand-mark svg { animation: brand-sway 12s ease-in-out infinite; transform-origin: 50% 62%; }
+@keyframes brand-sway {
+  0%, 100% { rotate: -4deg; }
+  50% { rotate: 4deg; }
+}
+
+/* Hinter den Kekskacheln atmet ein warmer Schein, darüber treiben Krümel. */
+.hero-art::before,
+.hero-art::after { content: ""; position: absolute; pointer-events: none; }
+.hero-art::before {
+  inset: 6% 2%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(201, 138, 75, .34), rgba(201, 138, 75, 0) 72%);
+  animation: hero-glow 11s ease-in-out infinite alternate;
+}
+@keyframes hero-glow {
+  from { opacity: .45; transform: scale(.9); }
+  to { opacity: 1; transform: scale(1.06); }
+}
+.hero-art::after {
+  inset: -8% -6%;
+  border-radius: 50%;
+  background-image:
+    radial-gradient(circle, rgba(184, 132, 60, .5) 0 1.6px, transparent 2px),
+    radial-gradient(circle, rgba(150, 49, 43, .32) 0 1.3px, transparent 1.8px),
+    radial-gradient(circle, rgba(184, 132, 60, .4) 0 1px, transparent 1.5px);
+  background-size: 132px 132px, 196px 196px, 88px 88px;
+  background-position: 0 0, 46px 74px, 22px 34px;
+  animation: crumb-drift 42s linear infinite;
+}
+@keyframes crumb-drift {
+  to { background-position: 132px -132px, -150px -122px, 88px -54px; }
+}
+
+/* Laufband mit dem ganzen Sortiment – die Seite bewegt sich auch ohne Eingabe. */
+.ticker {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 253, 248, .65), rgba(255, 253, 248, .3));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-roll var(--ticker-dur, 140s) linear infinite;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; }
+.ticker-group { display: flex; align-items: center; gap: 22px; padding-right: 22px; }
+.ticker-item {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.ticker-sep { font-size: 10px; color: var(--gold); opacity: .8; }
+.ticker-sep::before { content: "✳"; }
+@keyframes ticker-roll {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Der Reiter „App“ oben bleibt sichtbar und bekommt alle paar Sekunden einen Schein. */
+.site-nav .nav-app {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px 6px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(150, 49, 43, .3);
+  background: linear-gradient(120deg, rgba(150, 49, 43, .08), rgba(201, 138, 75, .22));
+  color: var(--red);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s, transform .2s var(--ease);
+}
+.site-nav .nav-app svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.site-nav .nav-app > * { position: relative; z-index: 1; }
+.site-nav .nav-app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(100deg, transparent 34%, rgba(255, 255, 255, .7) 50%, transparent 66%);
+  transform: translateX(-120%);
+  animation: app-sheen 7.5s ease-in-out infinite;
+}
+.site-nav .nav-app::after { display: none; }
+.site-nav .nav-app:hover {
+  border-color: rgba(150, 49, 43, .55);
+  box-shadow: 0 8px 18px -14px rgba(150, 49, 43, .9);
+  transform: translateY(-1px);
+}
+@keyframes app-sheen {
+  0%, 55% { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(120%); }
+}
+
+/* ---------- App-Bereich ---------- */
+.app-update {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px dashed rgba(150, 49, 43, .28);
+}
+.app-update h4 {
+  font-family: var(--serif);
+  font-size: 16.5px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+.app-update p { font-size: 13.5px; color: var(--ink-soft); max-width: 70ch; }
+.app-update a { color: var(--red); }
+.app-steps {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 70ch;
+}
+.app-steps li::marker { color: var(--red); font-family: var(--serif); }
+.app-steps code,
+.app-source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: rgba(36, 26, 19, .06);
+  border-radius: 6px;
+  padding: 2px 6px;
+  overflow-wrap: anywhere;
+}
+.app-source { display: inline-block; margin-top: 3px; }
+.is-app .app-update { display: none; }
+
+/* ---------- Download-Seite ---------- */
+.dl { max-width: 680px; padding-top: 54px; padding-bottom: 80px; }
+.dl h1 { font-size: clamp(2rem, 4vw, 2.8rem); margin: 12px 0 14px; }
+.dl p { color: var(--ink-soft); font-size: 15px; }
+.dl .btn { margin: 22px 0 8px; }
+.dl h2 { font-size: 1.25rem; margin: 34px 0 8px; }
+.dl code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.dl-hash { font-size: 12px !important; color: var(--ink-mute) !important; }
+.dl-back { display: inline-block; margin-top: 30px; font-size: 13.5px; color: var(--ink-mute); }
+
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
   .hero-text > *,
@@ -2284,12 +2481,24 @@ body.is-scrolled .site-header {
   .bake.step-in .bake-step,
   .finder-panel:not([hidden]),
   .trouble-item[open] p,
-  .list-count.pop { animation: none !important; }
+  .list-count.pop,
+  .eyebrow span,
+  .brand-mark svg,
+  .hero-art::before,
+  .hero-art::after,
+  .hero-art .tile svg,
+  .ticker-track,
+  .site-nav .nav-app::before { animation: none !important; }
+  .hero-art { transform: none !important; transition: none; }
+  .card-art::before { display: none; }
+  .ticker { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
 }
 
 @media print {
   .reveal { opacity: 1 !important; transform: none !important; }
-  .toast, .scroll-sentinel { display: none !important; }
+  .toast, .scroll-sentinel, .ticker { display: none !important; }
+  .hero-art { transform: none !important; }
+  .card-art::before { display: none !important; }
   .hero-text > *, .hero-art .tile, .hero-art .tile svg,
   .card.card-in, .drawer-body > *, .finder-panel,
   .list-count.pop { animation: none !important; }
