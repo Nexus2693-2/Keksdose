@@ -256,6 +256,91 @@ a { color: inherit; }
 .finder-lede { max-width: 58ch; margin: 12px 0 22px; color: var(--ink-soft); font-size: 15.5px; }
 .finder-card .btn { margin-top: 0; }
 
+/* ---------- Vorratscheck als eigener Abschnitt ---------- */
+.pantry-callout { padding-top: 30px; padding-bottom: 4px; }
+.pantry-callout-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 34px;
+  align-items: center;
+  padding: 34px 38px;
+  border: 1px solid rgba(184, 132, 60, .34);
+  border-radius: 24px;
+  background:
+    radial-gradient(560px 260px at 92% 4%, rgba(184, 132, 60, .2), rgba(184, 132, 60, 0) 70%),
+    linear-gradient(158deg, #fffcf4 0%, #f7ead5 100%);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+.pantry-callout-copy, .pantry-callout-side { position: relative; z-index: 1; }
+.pantry-callout-copy h2 { font-size: clamp(1.75rem, 3.6vw, 2.4rem); margin: 10px 0 0; }
+.pantry-callout-lede {
+  max-width: 50ch;
+  margin: 12px 0 22px;
+  font-size: 15.5px;
+  color: var(--ink-soft);
+}
+.pantry-callout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}
+.pantry-callout-state {
+  max-width: 36ch;
+  font-size: 13.5px;
+  color: var(--ink-mute);
+}
+.pantry-callout-hint {
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.pantry-teaser { display: flex; flex-wrap: wrap; gap: 8px; }
+.pantry-teaser-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  background: rgba(255, 253, 248, .9);
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, color .18s, transform .18s;
+}
+.pantry-teaser-chip::before { content: "+"; font-weight: 600; color: var(--gold); }
+.pantry-teaser-chip:hover { border-color: var(--ink); color: var(--ink); transform: translateY(-1px); }
+.pantry-teaser-chip[aria-pressed="true"] {
+  background: var(--red);
+  border-style: solid;
+  border-color: var(--red);
+  color: #fff8ee;
+}
+.pantry-teaser-chip[aria-pressed="true"]::before { content: "✓"; color: #f3d9c8; }
+.pantry-callout-fineprint {
+  margin-top: 12px;
+  max-width: 40ch;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+
+@media (max-width: 900px) {
+  .pantry-callout-card { grid-template-columns: 1fr; gap: 24px; padding: 28px 26px; }
+}
+
+@media (max-width: 430px) {
+  .pantry-callout-card { padding: 24px 18px; gap: 20px; }
+  .pantry-callout-state { max-width: none; }
+  .pantry-teaser-chip { font-size: 12.5px; padding: 6px 11px; }
+}
+
 .finder-progress { height: 3px; border-radius: 999px; background: rgba(36, 26, 19, .1); overflow: hidden; }
 #finderBar {
   display: block;
@@ -1146,7 +1231,7 @@ a { color: inherit; }
   body { background: #fff; }
   body::before, .site-header, .hero, .toolbar, #rezepte .section-head,
   .grid, .empty, .tips, .site-footer, .backdrop, .drawer-top,
-  .finder, .scale-row, .cutter, .drawer-actions, .skip-link { display: none !important; }
+  .finder, .pantry-callout, .scale-row, .cutter, .drawer-actions, .skip-link { display: none !important; }
   .drawer {
     position: static;
     transform: none;

@@ -2865,8 +2865,13 @@
   const pantryEl = {
     toggle: document.getElementById('pantryToggle'),
     panel: document.getElementById('pantryPanel'),
-    backdrop: document.getElementById('pantryBackdrop')
+    backdrop: document.getElementById('pantryBackdrop'),
+    teaser: document.getElementById('pantryTeaser'),
+    state: document.getElementById('pantryState')
   };
+
+  // Im eigenen Abschnitt stehen die gängigen Grundzutaten zum Antippen.
+  const PANTRY_TEASER = ['mehl', 'butter', 'zucker', 'eier', 'zimt', 'schokolade', 'mandeln', 'honig'];
 
   function loadPantry() {
     try {
@@ -2887,6 +2892,37 @@
     try {
       localStorage.setItem(PANTRY_KEY, JSON.stringify({ keys: [...pantry.keys], amounts: pantry.amounts }));
     } catch (err) { /* Sitzung genügt */ }
+    refreshPantryCallout();
+  }
+
+  function renderPantryTeaser() {
+    if (!pantryEl.teaser) return;
+    pantryEl.teaser.innerHTML = PANTRY_TEASER.map((key) => `<button class="pantry-teaser-chip" type="button"
+      data-teaser-key="${esc(key)}" aria-pressed="${pantry.keys.has(key)}">${esc(pantryLabel(key))}</button>`).join('');
+  }
+
+  // Der Abschnitt sagt jederzeit, was der gespeicherte Vorrat hergibt.
+  function refreshPantryCallout() {
+    if (pantryEl.teaser) {
+      pantryEl.teaser.querySelectorAll('[data-teaser-key]').forEach((chip) => {
+        chip.setAttribute('aria-pressed', String(pantry.keys.has(chip.dataset.teaserKey)));
+      });
+    }
+    if (!pantryEl.state) return;
+    const count = pantry.keys.size;
+    if (!count) {
+      pantryEl.state.textContent = 'Noch nichts angehakt. Tippe nebenan auf eine Zutat und sieh zu, was daraus wird.';
+      return;
+    }
+    const matches = pantryMatches();
+    const ready = matches.filter((match) => !match.missing.length).length;
+    const nearly = matches.filter((match) => match.missing.length === 1).length;
+    const zutaten = `${count} ${count === 1 ? 'Zutat' : 'Zutaten'} im Vorrat`;
+    if (!ready) {
+      pantryEl.state.textContent = `${zutaten} – für ein ganzes Rezept fehlt noch etwas.`;
+      return;
+    }
+    pantryEl.state.textContent = `${zutaten} · ${ready} ${ready === 1 ? 'Rezept geht' : 'Rezepte gehen'} sofort${nearly ? ` · ${nearly} brauchen nur noch eine Zutat` : ''}.`;
   }
 
   function hasPantry(key) {
@@ -3158,6 +3194,30 @@
       }
     });
   }
+
+  if (pantryEl.teaser) {
+    pantryEl.teaser.addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-teaser-key]');
+      if (!chip) return;
+      const key = chip.dataset.teaserKey;
+      if (pantry.keys.has(key)) {
+        pantry.keys.delete(key);
+        delete pantry.amounts[key];
+      } else {
+        pantry.keys.add(key);
+      }
+      savePantry();
+      // Ein offener Vorratscheck zeigt sofort denselben Stand.
+      if (pantryEl.panel && pantryEl.panel.classList.contains('open')) {
+        renderPantryGrid();
+        renderPantryPicked();
+        renderPantryResults();
+      }
+    });
+  }
+
+  const pantryCalloutBtn = document.getElementById('pantryCallout');
+  if (pantryCalloutBtn) pantryCalloutBtn.addEventListener('click', openPantry);
 
   /* ---------- Tastaturfokus in den Drawern ---------- */
   const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -3471,6 +3531,8 @@
   if (planFromLink) savePlan();
 
   loadPantry();
+  renderPantryTeaser();
+  refreshPantryCallout();
 
   const initial = location.hash.match(/^#rezept\/(.+)$/);
   if (initial) openRecipe(decodeURIComponent(initial[1]), false);

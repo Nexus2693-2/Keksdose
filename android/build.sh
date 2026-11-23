@@ -8,8 +8,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_NAME="${VERSION_NAME:-1.0.1}"
-VERSION_CODE="${VERSION_CODE:-2}"
+VERSION_NAME="${VERSION_NAME:-1.0.2}"
+VERSION_CODE="${VERSION_CODE:-3}"
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/opt/android-sdk}}"
 BUILD_TOOLS="$(ls -d "$SDK"/build-tools/* 2>/dev/null | sort -V | tail -1)"
