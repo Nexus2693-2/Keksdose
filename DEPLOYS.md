@@ -39,6 +39,7 @@ Weitere Adressen gibt es nicht. Die frühere Freebuff-Subdomain
 | 23.11.2026 | Adresse ohne Kontonamen: Umzug auf Cloudflare Pages **https://keksdose.pages.dev** (Projekt `keksdose`, Direct Upload mit Commit-Hash), Seiten/Obtainium-Link/Generator/Repo-Homepage/Doku zeigen dorthin, Worker `keksdose` nur noch Reserve; Offline-Hülle v17 | `c89849c` |
 | 23.11.2026 | Früheres Netlify-Hosting vollständig entfernt: Projekt samt Deploy-Historie gelöscht (Adresse antwortet mit 404), Konfiguration, Token, lokaler Zustand und Screenshot aus dem Repository gestrichen; gepflegt werden nur noch Cloudflare Pages und der Freebuff-Spiegel | `4df489d` |
 | 26.11.2026 | Für Suchmaschinen vorbereitet: `robots.txt` (Freigabe + Sitemap-Verweis) und `sitemap.xml` (Startseite, `/downloads/`) veröffentlicht, Canonical-Angabe auf der Download-Seite; Startseite und Offline-Hülle unverändert ausgeliefert. Nächster Schritt von Hand: Sitemap in der Google Search Console eintragen | `12187cd` |
+| 26.11.2026 | Search-Console-Verifizierung: `google-site-verification`-Tag in der Startseite, Canonical- und `robots`-Angabe ergänzt, Offline-Hülle v18; alle 18 Dateien live byte-genau geprüft | `eda691c` |
 
 ## Hinweise
 
