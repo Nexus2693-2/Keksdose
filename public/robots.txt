@@ -1,0 +1,7 @@
+# Keksdose – Plätzchen-Rezepte
+# Alle Seiten dürfen von Suchmaschinen gelesen und indiziert werden.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://keksdose.pages.dev/sitemap.xml
