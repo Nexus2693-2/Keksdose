@@ -1,0 +1,15 @@
+# Kanonische Adresse für Suchmaschinen.
+# Ergänzt das <link rel="canonical"> in den Seiten um den HTTP-Header,
+# den Google ebenfalls als Canonical-Signal liest.
+
+/
+  Link: <https://keksdose.pages.dev/>; rel="canonical"
+
+/index.html
+  Link: <https://keksdose.pages.dev/>; rel="canonical"
+
+/downloads/
+  Link: <https://keksdose.pages.dev/downloads/>; rel="canonical"
+
+/downloads/index.html
+  Link: <https://keksdose.pages.dev/downloads/>; rel="canonical"
