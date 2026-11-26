@@ -49,7 +49,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Dateien: sofort aus dem Cache, im Hintergrund auf den neuesten Stand bringen.
+  // Dateien: sofort aus dem Cache, parallel im Hintergrund erneuern.
   event.respondWith(
     caches.match(request).then((cached) => {
       const fresh = fetch(request)
