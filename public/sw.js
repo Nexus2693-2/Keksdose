@@ -1,6 +1,6 @@
 /* Keksdose – Offline-Hülle für die Küche.
    Bei jeder Veröffentlichung VERSION hochzählen, damit alte Dateien ersetzt werden. */
-const VERSION = 'keksdose-v18-2026-11-26';
+const VERSION = 'keksdose-v17-2026-11-23';
 const SHELL = [
   './',
   './index.html',

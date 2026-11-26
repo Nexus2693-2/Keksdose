@@ -12,6 +12,8 @@ Die Seite läuft unter **https://keksdose.pages.dev** (Cloudflare Pages, Deploy 
 - `public/styles.css` – Gestaltung inklusive Druckansicht
 - `public/app.js` – Filter, Rezept-Drawer, Finder, Preisschätzung, Einkaufsliste, Backplan, Backmodus, Vorratscheck
 - `public/recipes.js` – Rezeptdaten
+- `public/robots.txt` – Freigabe für Suchmaschinen, verweist auf die Sitemap
+- `public/sitemap.xml` – beide Adressen der Seite für die Search Console (`https://keksdose.pages.dev/sitemap.xml`)
 - `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` – Offline-Hülle und App-Icons
 - `cloudflare/worker.js` – Reserve: Worker `keksdose`, liefert `public/` aus dem Repo und cached am Edge (seine Adresse steht auf keiner Seite)
 - `worker.js` + `sites.manifest.json` – Freebuff-Deploy als Spiegel (Worker liefert `public/` aus)
