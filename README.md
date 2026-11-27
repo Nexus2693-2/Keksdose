@@ -15,6 +15,7 @@ Die Seite läuft unter **https://keksdose.pages.dev** (Cloudflare Pages, Deploy 
 - `public/robots.txt` – Freigabe für Suchmaschinen, verweist auf die Sitemap
 - `public/sitemap.xml` – beide Adressen der Seite für die Search Console (`https://keksdose.pages.dev/sitemap.xml`)
 - `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` – Offline-Hülle und App-Icons
+- `public/favicon.ico`, `public/favicon.png`, `public/icons/favicon-*.png` – Suchmaschinen-Icon (48/96/144/192 px, quadratisch, damit Google das Keks-Symbol statt des Erd-Symbols zeigt)
 - `cloudflare/worker.js` – Reserve: Worker `keksdose`, liefert `public/` aus dem Repo und cached am Edge (seine Adresse steht auf keiner Seite)
 - `worker.js` + `sites.manifest.json` – Freebuff-Deploy als Spiegel (Worker liefert `public/` aus)
 - `tools/obtainium-link.mjs` – erzeugt den Obtainium-Ein-Klick-Link aus Adresse und Versionsmuster
